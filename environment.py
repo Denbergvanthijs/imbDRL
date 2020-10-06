@@ -1,19 +1,15 @@
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
-import tensorflow as tf
-from tf_agents.environments import py_environment
-from tf_agents.environments import utils as tf_utils
-from tf_agents.specs import array_spec
+from tf_agents.environments.py_environment import PyEnvironment
+from tf_agents.specs.array_spec import ArraySpec, BoundedArraySpec
 from tf_agents.trajectories import time_step as ts
 
-tf.compat.v1.enable_v2_behavior()
 
-
-class ClassifyEnv(py_environment.PyEnvironment):
+class ClassifyEnv(PyEnvironment):
     def __init__(self, X_train, y_train, imb_rate):
-        self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=np.int32, minimum=0, maximum=1, name='action')
-        self._observation_spec = array_spec.ArraySpec(shape=(29,), dtype=np.float32, name='observation')
+        self._action_spec = BoundedArraySpec(shape=(), dtype=np.int32, minimum=0, maximum=1, name='action')
+        self._observation_spec = ArraySpec(shape=(29,), dtype=np.float32, name='observation')
         self._episode_ended = False
 
         self.X_train = X_train
@@ -70,15 +66,16 @@ class ClassifyEnv(py_environment.PyEnvironment):
 
 
 if __name__ == "__main__":
+    from tf_agents.environments import utils as tf_utils
+
     from get_data import load_data
 
-    imb_rate = 0.01  # Imbalance rate
+    imb_rate = 0.00173  # Imbalance rate
     min_class = [1]  # Minority classes, must be same as trained model
     maj_class = [0]  # Majority classes, must be same as trained model
     datasource = "credit"  # The dataset to be selected
 
     # Remove classes ∉ {min_class, maj_class}, imbalance the dataset
-    # Make sure the same seed is used as during training to ensure no data contamination
     X_train, y_train, X_test, y_test, X_val, y_val = load_data(datasource, imb_rate, min_class, maj_class)  # Load all data
 
     environment = ClassifyEnv(X_train, y_train, imb_rate)
