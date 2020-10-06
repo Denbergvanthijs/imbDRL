@@ -55,6 +55,7 @@ def load_creditcard(fp: str = "./data/creditcard.csv"):
 
     y = X["Class"]  # 1: Fraud/Minority, 0: No fraud/Majority
     X.drop(columns=["Time", "Class"], inplace=True)  # Dropping `Time` since future data for the model could have another epoch
+    X = X.astype(np.float32)
 
     return X.values, y.values  # Numpy arrays
 
@@ -131,5 +132,5 @@ def get_imb_data(X, y, imb_rate: float, min_class: list, maj_class: list):
 
 
 if __name__ == "__main__":
-    X_train, y_train, X_test, y_test, X_val, y_val = load_data("credit", 0.01, [1], [0])
+    X_train, y_train, X_test, y_test, X_val, y_val = load_data("credit", 0.00173, [1], [0])
     print([i.shape for i in (X_train, y_train, X_test, y_test, X_val, y_val)])
