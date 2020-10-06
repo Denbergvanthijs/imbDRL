@@ -25,7 +25,6 @@ def collect_step(environment, policy, buffer):
     next_time_step = environment.step(action_step.action)
     traj = trajectory.from_transition(time_step, action_step, next_time_step)
 
-    # Add trajectory to the replay buffer
     buffer.add_batch(traj)
 
 
