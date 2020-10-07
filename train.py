@@ -26,7 +26,7 @@ from utils import collect_data, compute_metrics
 
 # Code is based of https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
 
-EPISODES = 2_00  # Total episodes
+EPISODES = 20_000  # Total episodes
 BATCH_SIZE = 64  # Batch size of Replay Memory
 WARMUP_STEPS = 1_000  # Amount of warmup steps before training
 MEMORY_LENGTH = 100_000  # Max Replay Memory length
