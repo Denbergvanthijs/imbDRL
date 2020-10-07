@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
+import pickle
 from datetime import datetime
 
 import numpy as np
@@ -21,53 +22,53 @@ from tf_agents.utils import common
 
 from environment import ClassifyEnv
 from get_data import load_data
-from utils import collect_data
+from utils import collect_data, compute_metrics
 
 # Code is based of https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
 
-num_iterations = 20_000  # Total episodes
-initial_collect_steps = 1_000  # Warmup period
-collect_steps_per_iteration = 1
-replay_buffer_max_length = 100_000  # Replay Memory length
-batch_size = 64  # Batch size of Replay Memory
-learning_rate = 0.001  # Learning Rate
-log_interval = 200  # Print step and loss every N steps
-num_eval_episodes = 10  # Number of episodes to use to calculate the average return
-num_test_episodes = 50  # Number of episodes to use to test the final policy
-eval_interval = 1_000  # Evaluate the policy every N steps
-fc_layer_params = (100, )  # Q network architecture
-TARGET_MODEL_UPDATE = 1  # Period for soft updates
+EPISODES = 2_00  # Total episodes
+BATCH_SIZE = 64  # Batch size of Replay Memory
+WARMUP_STEPS = 1_000  # Amount of warmup steps before training
+MEMORY_LENGTH = 100_000  # Max Replay Memory length
+COLLECT_STEPS_PER_EPISODE = 1  # Amount of steps to collect data each episode
+
+LOG_EVERY = 200  # Print step and loss every `LOG_EVERY` episodes
+VAL_EVERY = 1_000  # Validate the policy every `EVAL_EVERY` episodes
+VAL_EPISODES = 10  # Number of episodes to use to calculate metrics during training
+TEST_EPISODES = 50  # Number of episodes to use to test the final policy after training
+LAYER_PARAMS = (100, )  # Q network architecture
+
+LR = 0.001  # Learning Rate
 GAMMA = 1.0  # Discount factor
 EPSILON = 0.1  # Minimal chance of choosing random action
 DECAY_STEPS = 1_000  # Number of episodes to decay from 1.0 to `EPSILON`
-policy_dir = "./models/" + datetime.now().strftime('%Y%m%d_%H%M%S')
-logs_dir = "./logs/" + datetime.now().strftime('%Y%m%d_%H%M%S')
+TARGET_MODEL_UPDATE = 1  # Period for soft updates
 
-if False:  # Easy switch between custom and CartPole environments
+MODEL_DIR = "./models/" + (NOW := datetime.now().strftime('%Y%m%d_%H%M%S'))
+WRITER = tf.summary.create_file_writer("./logs/" + NOW)
+METRICS = [AverageReturnMetric(buffer_size=VAL_EPISODES), AverageEpisodeLengthMetric(buffer_size=VAL_EPISODES), NumberOfEpisodes()]
+global_step = tf.Variable(0, name="global_step", dtype=np.int64, trainable=False)  # Global train episode counter
+
+if True:  # Easy switch between custom and CartPole environments
     imb_rate = 0.00173  # Imbalance rate
     min_class = [1]  # Minority classes, must be same as trained model
     maj_class = [0]  # Majority classes, must be same as trained model
     datasource = "credit"  # The dataset to be selected
     X_train, y_train, X_test, y_test, X_val, y_val = load_data(datasource, imb_rate, min_class, maj_class)  # Load all data
-    train_py_env = ClassifyEnv(X_train, y_train, imb_rate)
-    eval_py_env = ClassifyEnv(X_val, y_val, imb_rate)
-    test_py_env = ClassifyEnv(X_val, y_val, imb_rate)
+
+    train_env = TFPyEnvironment(ClassifyEnv(X_train, y_train, imb_rate))  # Change Python environment to TF environment
+    val_env = TFPyEnvironment(ClassifyEnv(X_val, y_val, imb_rate))
+    test_env = TFPyEnvironment(ClassifyEnv(X_test, y_test, imb_rate))
 else:
-    train_py_env = suite_gym.load('CartPole-v0')
-    eval_py_env = suite_gym.load('CartPole-v0')
-    test_py_env = suite_gym.load('CartPole-v0')
+    train_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))  # Change Python environment to TF environment
+    val_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))
+    test_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))
 
-train_env = TFPyEnvironment(train_py_env)  # Change Python environment to TF environment
-eval_env = TFPyEnvironment(eval_py_env)  # Numpy arrays will be converted to TF Tensors
-test_env = TFPyEnvironment(test_py_env)
-del train_py_env, eval_py_env, test_py_env
-
-q_net = QNetwork(train_env.observation_spec(), train_env.action_spec(), fc_layer_params=fc_layer_params)
-optimizer = Adam(learning_rate=learning_rate)
-
-global_step = tf.Variable(0, name="global_step", dtype=np.int64, trainable=False)  # Counter for global train episode counter
 # Custom epsilon decay: https://github.com/tensorflow/agents/issues/339
-epsilon_policy = tf.compat.v1.train.polynomial_decay(1.0, global_step, DECAY_STEPS, end_learning_rate=EPSILON)
+epsilon_decay = tf.compat.v1.train.polynomial_decay(1.0, global_step, DECAY_STEPS, end_learning_rate=EPSILON)
+q_net = QNetwork(train_env.observation_spec(), train_env.action_spec(), fc_layer_params=LAYER_PARAMS)
+optimizer = Adam(learning_rate=LR)
+
 agent = DdqnAgent(train_env.time_step_spec(),
                   train_env.action_spec(),
                   q_network=q_net,
@@ -76,50 +77,51 @@ agent = DdqnAgent(train_env.time_step_spec(),
                   train_step_counter=global_step,
                   target_update_period=TARGET_MODEL_UPDATE,
                   gamma=GAMMA,
-                  epsilon_greedy=epsilon_policy)
+                  epsilon_greedy=epsilon_decay)
 agent.initialize()
 
-random_policy = RandomTFPolicy(train_env.time_step_spec(), train_env.action_spec())  # Choose random action
-replay_buffer = TFUniformReplayBuffer(data_spec=agent.collect_data_spec,
-                                      batch_size=train_env.batch_size,
-                                      max_length=replay_buffer_max_length)
+random_policy = RandomTFPolicy(train_env.time_step_spec(), train_env.action_spec())  # Choose random action from `action_spec`
+replay_buffer = TFUniformReplayBuffer(data_spec=agent.collect_data_spec, batch_size=train_env.batch_size, max_length=MEMORY_LENGTH)
+collect_data(train_env, random_policy, replay_buffer, WARMUP_STEPS)  # Warmup period, fill memory with random actions
 
-collect_data(train_env, random_policy, replay_buffer, initial_collect_steps)  # Warmup period
-dataset = replay_buffer.as_dataset(num_parallel_calls=3, sample_batch_size=batch_size, num_steps=2).prefetch(3)
+dataset = replay_buffer.as_dataset(num_parallel_calls=3, sample_batch_size=BATCH_SIZE, num_steps=2).prefetch(3)
 iterator = iter(dataset)
-agent.train = common.function(agent.train)
+agent.train = common.function(agent.train)  # Optimalization
 
-# Evaluate the agent's policy once before training.
-eval_summary_writer = tf.summary.create_file_writer(logs_dir)
-eval_metrics = [AverageReturnMetric(buffer_size=num_eval_episodes),
-                AverageEpisodeLengthMetric(buffer_size=num_eval_episodes),
-                NumberOfEpisodes()]
+# Calculte metrics once at `global_step` 0
+metric_utils.eager_compute(METRICS, val_env, agent.policy, num_episodes=VAL_EPISODES,
+                           train_step=global_step, summary_writer=WRITER, use_function=False)
 
-# Calculte metrics once for step 0
-metric_utils.eager_compute(eval_metrics, eval_env, agent.policy, num_episodes=num_eval_episodes,
-                           train_step=global_step, summary_writer=eval_summary_writer, use_function=False)
-
-for _ in range(num_iterations):
-    # Collect a few steps using collect_policy and save to the replay buffer.
-    collect_data(train_env, agent.collect_policy, replay_buffer, collect_steps_per_iteration)
+for _ in range(EPISODES):
+    # Collect a few steps using collect_policy and save to `replay_buffer`
+    collect_data(train_env, agent.collect_policy, replay_buffer, COLLECT_STEPS_PER_EPISODE)
     # TODO: print(replay_buffer.num_frames())
 
-    # Sample a batch of data from the buffer and update the agent's network.
-    experience, unused_info = next(iterator)
-    # TODO: print(len(experience))
+    # Sample a batch of data from `replay_buffer` and update the agent's network
+    experience, unused_info = next(iterator)  # TODO: print(len(experience))
     train_loss = agent.train(experience).loss
 
-    if not global_step % log_interval:
+    if not global_step % LOG_EVERY:
         print(f"step={global_step.numpy()}; {train_loss=:.6f}")
 
-    # https://github.com/tensorflow/agents/issues/385
-    if not global_step % eval_interval:
-        metric_utils.eager_compute(eval_metrics, eval_env, agent.policy, num_episodes=num_eval_episodes,
-                                   train_step=global_step, summary_writer=eval_summary_writer, use_function=False)
+    if not global_step % VAL_EVERY:
+        metric_utils.eager_compute(METRICS, val_env, agent.policy, num_episodes=VAL_EPISODES,
+                                   train_step=global_step, summary_writer=WRITER, use_function=False)
 
-tf_policy_saver = PolicySaver(agent.policy)
-tf_policy_saver.save(policy_dir)  # Save policy
-saved_policy = tf.saved_model.load(policy_dir)
+        stats = compute_metrics(agent._target_q_network, X_val, y_val)
+        with WRITER.as_default():
+            for k, v in stats.items():
+                tf.summary.scalar(k, v, step=global_step)
 
-test_results = metric_utils.eager_compute(eval_metrics, test_env, saved_policy, num_episodes=num_test_episodes, use_function=False)
-print(f"{[(k, v.numpy()) for k, v in test_results.items()]}")
+# policy_saver = PolicySaver(agent.policy, train_step=global_step)
+# policy_saver.save(POLICY_DIR)  # Save policy to `POLICY_DIR`
+# saved_policy = tf.saved_model.load(POLICY_DIR)  # Load the saved policy, optional
+
+with open(MODEL_DIR + ".pkl", "wb") as f:  # Save Q-network as pickle
+    pickle.dump(agent._target_q_network, f)
+
+with open(MODEL_DIR + ".pkl", "rb") as f:  # Load the Q-network
+    network = pickle.load(f)
+
+test_results = compute_metrics(network, X_test, y_test)
+print(*[(k, round(v, 6)) for k, v in test_results.items()])
