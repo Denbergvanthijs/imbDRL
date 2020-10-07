@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from sklearn.metrics import confusion_matrix, f1_score, fbeta_score
 from tf_agents.trajectories import trajectory
 
@@ -36,6 +37,15 @@ def collect_data(env, policy, buffer, steps: int):
         collect_step(env, policy, buffer)
 
 
+def split_csv(fp: str = "./data/creditcard.csv", fp_dest: str = "./data", name: str = "credit", chunksize: int = 220_000):
+    """
+    Splits a csv file every `chuncksize` lines.
+    Based on https://stackoverflow.com/a/36644425/10603874
+    """
+    for i, chunk in enumerate(pd.read_csv(fp, chunksize=chunksize)):
+        chunk.to_csv(f"{fp_dest}/{name}{i}.csv", index=False)
+
+
 if __name__ == "__main__":
     import pickle
 
@@ -51,5 +61,4 @@ if __name__ == "__main__":
         network = pickle.load(f)
 
     metrics = compute_metrics(network, X_test, y_test)
-
     print(*[(k, round(v, 6)) for k, v in metrics.items()])
