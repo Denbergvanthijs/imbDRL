@@ -9,7 +9,7 @@ from tf_agents.trajectories import time_step as ts
 class ClassifyEnv(PyEnvironment):
     def __init__(self, X_train, y_train, imb_rate):
         self._action_spec = BoundedArraySpec(shape=(), dtype=np.int32, minimum=0, maximum=1, name='action')
-        self._observation_spec = ArraySpec(shape=(29,), dtype=np.float32, name='observation')
+        self._observation_spec = ArraySpec(shape=X_train.shape[1:], dtype=np.float32, name='observation')
         self._episode_ended = False
 
         self.X_train = X_train
@@ -66,7 +66,7 @@ class ClassifyEnv(PyEnvironment):
 
 
 if __name__ == "__main__":
-    from tf_agents.environments import utils as tf_utils
+    from tf_agents.environments.utils import validate_py_environment
 
     from get_data import load_data
 
@@ -79,4 +79,4 @@ if __name__ == "__main__":
     X_train, y_train, X_test, y_test, X_val, y_val = load_data(datasource, imb_rate, min_class, maj_class)  # Load all data
 
     environment = ClassifyEnv(X_train, y_train, imb_rate)
-    tf_utils.validate_py_environment(environment, episodes=5)
+    validate_py_environment(environment, episodes=5)
