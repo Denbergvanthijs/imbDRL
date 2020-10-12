@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function
-
 import pickle
 from datetime import datetime
 
@@ -99,11 +97,10 @@ metric_utils.eager_compute(METRICS, val_env, agent.policy, num_episodes=VAL_EPIS
 for _ in range(EPISODES):
     # Collect a few steps using collect_policy and save to `replay_buffer`
     collect_data(train_env, agent.collect_policy, replay_buffer, COLLECT_STEPS_PER_EPISODE)
-    # TODO: print(replay_buffer.num_frames())
 
     # Sample a batch of data from `replay_buffer` and update the agent's network
-    experience, unused_info = next(iterator)  # TODO: print(len(experience))
-    train_loss = agent.train(experience).loss
+    experiences, _ = next(iterator)
+    train_loss = agent.train(experiences).loss
 
     if not global_step % LOG_EVERY:
         print(f"step={global_step.numpy()}; {train_loss=:.6f}")
@@ -117,10 +114,6 @@ for _ in range(EPISODES):
             with WRITER.as_default():
                 for k, v in stats.items():
                     tf.summary.scalar(k, v, step=global_step)
-
-# policy_saver = PolicySaver(agent.policy, train_step=global_step)
-# policy_saver.save(POLICY_DIR)  # Save policy to `POLICY_DIR`
-# saved_policy = tf.saved_model.load(POLICY_DIR)  # Load the saved policy, optional
 
 with open(MODEL_DIR + ".pkl", "wb") as f:  # Save Q-network as pickle
     pickle.dump(agent._target_q_network, f)

@@ -3,7 +3,6 @@ from pandas import read_csv
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.datasets import cifar10, fashion_mnist, imdb, mnist
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.python.keras.backend import dtype
 
 
 def load_image(data_source: str):

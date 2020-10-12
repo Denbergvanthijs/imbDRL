@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 from tf_agents.environments.py_environment import PyEnvironment
 from tf_agents.specs.array_spec import ArraySpec, BoundedArraySpec
