@@ -66,7 +66,7 @@ class ClassifyEnv(PyEnvironment):
 if __name__ == "__main__":
     from tf_agents.environments.utils import validate_py_environment
 
-    from get_data import load_data
+    from dqnimp.data import load_data
 
     imb_rate = 0.00173  # Imbalance rate
     min_class = [1]  # Minority classes, must be same as trained model

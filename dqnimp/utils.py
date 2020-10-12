@@ -49,7 +49,7 @@ def split_csv(fp: str = "./data/creditcard.csv", fp_dest: str = "./data", name: 
 if __name__ == "__main__":
     import pickle
 
-    from get_data import load_data
+    from dqnimp.data import load_data
 
     imb_rate = 0.00173  # Imbalance rate
     min_class = [1]  # Minority classes, must be same as trained model
