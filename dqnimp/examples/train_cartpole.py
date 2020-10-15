@@ -4,24 +4,24 @@ from dqnimp.trainwrapper import TrainCartPole
 from tf_agents.environments import suite_gym
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
 
-episodes = 1_00  # Total episodes
-warmup_episodes = 100  # Amount of warmup steps before training
-memory_length = 100_000  # Max Replay Memory length
+episodes = 20_000  # Total number of episodes
+warmup_episodes = 1_000  # Amount of warmup steps to collect data with random policy
+memory_length = 100_000  # Max length of the Replay Memory
 
 conv_layers = None
-dense_layers = (100, )
+dense_layers = (128, )  # For CartPole v0, only a small network is needed.
 dropout_layers = None
 
-lr = 0.001  # Learning Rate
-gamma = 1.0  # Discount factor
-min_epsilon = 0.1  # Minimal chance of choosing random action
+lr = 0.001  # Learning rate
+gamma = 0.99  # Discount factor
+min_epsilon = 0.1  # Minimal and final chance of choosing random action
 decay_episodes = 100  # Number of episodes to decay from 1.0 to `min_epsilon`
-ddqn = True
+ddqn = True  # Whether to use a Double DQN or DQN
 
-model_dir = "./models/" + (NOW := datetime.now().strftime('%Y%m%d_%H%M%S'))
-log_dir = "./logs/" + NOW
+model_dir = "./models/" + (NOW := datetime.now().strftime('%Y%m%d_%H%M%S'))  # Location to save the Q-network as a pickle
+log_dir = "./logs/" + NOW  # Location to save the logs needed for tensorboard
 
-train_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))  # Change Python environment to TF environment
+train_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))  # Change OpenAI Gym environment to Python environment to TF environment
 val_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))
 
 model = TrainCartPole(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes, model_dir, log_dir)
