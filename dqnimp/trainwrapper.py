@@ -1,4 +1,5 @@
 import pickle
+from abc import ABC, abstractmethod
 
 import numpy as np
 import tensorflow as tf
@@ -14,7 +15,7 @@ from tf_agents.utils import common
 from dqnimp.utils import collect_data, metrics_by_network
 
 
-class TrainWrapper:
+class TrainWrapper(ABC):
     def __init__(self, episodes: int, warmup_episodes: int, lr: float, gamma: float, min_epsilon: float, decay_episodes: int, model_dir: str,
                  log_dir: str, batch_size: int = 64,  memory_length: int = 100_000, collect_steps_per_episode: int = 1, log_every: int = 200,
                  val_every: int = 1_000, val_episodes: int = 10, target_model_update: int = 1, ddqn: bool = True):
@@ -109,19 +110,23 @@ class TrainWrapper:
 
         self.save_model()
 
+    @abstractmethod
     def save_model(self):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def load_model(fp: str):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def collect_metrics(self):
         """*args given in train() will be passed to this function."""
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def evaluate(self):
         """Evaluation function to run after training with seperate train-dataset."""
-        raise NotImplementedError
+        pass
 
 
 class TrainCustom(TrainWrapper):
