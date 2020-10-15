@@ -6,6 +6,7 @@ import tensorflow as tf
 from sklearn.metrics import confusion_matrix, f1_score, fbeta_score
 from tf_agents.trajectories import time_step as ts
 from tf_agents.trajectories import trajectory
+from tqdm import tqdm
 
 
 def metrics_by_network(network, X, y):
@@ -63,10 +64,14 @@ def collect_step(environment, policy, buffer):
     buffer.add_batch(traj)
 
 
-def collect_data(env, policy, buffer, steps: int):
+def collect_data(env, policy, buffer, steps: int, logging: bool = False):
     """Collect data for a number of steps. Mainly used for warmup period."""
-    for _ in range(steps):
-        collect_step(env, policy, buffer)
+    if logging:
+        for _ in tqdm(range(steps)):
+            collect_step(env, policy, buffer)
+    else:
+        for _ in range(steps):
+            collect_step(env, policy, buffer)
 
 
 def split_csv(fp: str = "./data/creditcard.csv", fp_dest: str = "./data", name: str = "credit", chunksize: int = 220_000):
