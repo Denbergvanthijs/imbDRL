@@ -19,7 +19,7 @@ from dqnimp.utils import collect_data, metrics_by_network
 class TrainWrapper(ABC):
     def __init__(self, episodes: int, warmup_episodes: int, lr: float, gamma: float, min_epsilon: float, decay_episodes: int, model_dir: str,
                  log_dir: str, batch_size: int = 64,  memory_length: int = 100_000, collect_steps_per_episode: int = 1, log_every: int = 200,
-                 val_every: int = 1_000, val_episodes: int = 10, target_model_update: int = 1, ddqn: bool = True):
+                 val_every: int = 1_000, val_episodes: int = 10, target_model_update: int = 1, target_update_tau: float = 1.0, ddqn: bool = True):
         """Wrapper to make training easier.
         Code is partly based of https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
         """
@@ -39,6 +39,7 @@ class TrainWrapper(ABC):
         self.min_epsilon = min_epsilon  # Minimal chance of choosing random action
         self.decay_episodes = decay_episodes  # Number of episodes to decay from 1.0 to `EPSILON`
         self.target_model_update = target_model_update  # Period for soft updates
+        self.target_update_tau = target_update_tau
         self.ddqn = ddqn  # Use Double DQN?
 
         self.model_dir = model_dir
@@ -77,6 +78,7 @@ class TrainWrapper(ABC):
                            td_errors_loss_fn=common.element_wise_squared_loss,
                            train_step_counter=self.global_episode,
                            target_update_period=self.target_model_update,
+                           target_update_tau=self.target_update_tau,
                            gamma=self.gamma,
                            epsilon_greedy=self.epsilon_decay)
         self.agent.initialize()
@@ -89,7 +91,7 @@ class TrainWrapper(ABC):
     def train(self, *args):
         """Starts the training of the model. Includes warmup period, metrics collection and model saving."""
         # Warmup period, fill memory with random actions
-        collect_data(self.train_env, self.random_policy, self.replay_buffer, self.warmup_episodes)
+        collect_data(self.train_env, self.random_policy, self.replay_buffer, self.warmup_episodes, logging=True)
         self.dataset = self.replay_buffer.as_dataset(num_parallel_calls=3, sample_batch_size=self.batch_size, num_steps=2).prefetch(3)
         self.iterator = iter(self.dataset)
         self.agent.train = common.function(self.agent.train)  # Optimalization
