@@ -4,22 +4,23 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tf_agents.agents.dqn.dqn_agent import DdqnAgent, DqnAgent
-from tf_agents.eval import metric_utils
 from tf_agents.networks.q_network import QNetwork
+from tf_agents.policies.policy_saver import PolicySaver
 from tf_agents.policies.random_tf_policy import RandomTFPolicy
 from tf_agents.replay_buffers.tf_uniform_replay_buffer import \
     TFUniformReplayBuffer
 from tf_agents.utils import common
 
-from dqnimp.utils import collect_data, compute_metrics
-
-# Code is based of https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
+from dqnimp.utils import collect_data, metrics_by_network
 
 
-class TrainClass:
+class TrainWrapper:
     def __init__(self, episodes: int, warmup_episodes: int, lr: float, gamma: float, min_epsilon: float, decay_episodes: int, model_dir: str,
                  log_dir: str, batch_size: int = 64,  memory_length: int = 100_000, collect_steps_per_episode: int = 1, log_every: int = 200,
                  val_every: int = 1_000, val_episodes: int = 10, target_model_update: int = 1, ddqn: bool = True):
+        """Wrapper to make training easier.
+        Code is partly based of https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
+        """
 
         self.episodes = episodes  # Total episodes
         self.warmup_episodes = warmup_episodes  # Amount of warmup steps before training
@@ -49,6 +50,7 @@ class TrainClass:
         self.optimizer = Adam(learning_rate=self.lr)
 
     def compile(self, train_env, val_env, conv_layers, dense_layers, dropout_layers):
+        """Initializes the Q-network, agent, collect policy and replay buffer."""
         self.train_env = train_env
         self.val_env = val_env
         self.conv_layers = conv_layers
@@ -79,9 +81,11 @@ class TrainClass:
 
         self.random_policy = RandomTFPolicy(self.train_env.time_step_spec(), self.train_env.action_spec())
         self.replay_buffer = TFUniformReplayBuffer(data_spec=self.agent.collect_data_spec,
-                                                   batch_size=self.train_env.batch_size, max_length=self.memory_length)
+                                                   batch_size=self.train_env.batch_size,
+                                                   max_length=self.memory_length)
 
     def train(self, *args):
+        """Starts the training of the model. Includes warmup period, metrics collection and model saving."""
         # Warmup period, fill memory with random actions
         collect_data(self.train_env, self.random_policy, self.replay_buffer, self.warmup_episodes)
         self.dataset = self.replay_buffer.as_dataset(num_parallel_calls=3, sample_batch_size=self.batch_size, num_steps=2).prefetch(3)
@@ -106,37 +110,46 @@ class TrainClass:
         self.save_model()
 
     def save_model(self):
-        with open(self.model_dir + ".pkl", "wb") as f:  # Save Q-network as pickle
-            pickle.dump(self.agent._target_q_network, f)
+        raise NotImplementedError
 
-    @staticmethod
     def load_model(fp: str):
-        with open(fp + ".pkl", "rb") as f:  # Load the Q-network
-            network = pickle.load(f)
-        return network
+        raise NotImplementedError
 
     def collect_metrics(self):
+        """*args given in train() will be passed to this function."""
         raise NotImplementedError
 
     def evaluate(self):
+        """Evaluation function to run after training with seperate train-dataset."""
         raise NotImplementedError
 
 
-class TrainCustom(TrainClass):
+class TrainCustom(TrainWrapper):
     def collect_metrics(self, X_val, y_val):
-        stats = compute_metrics(self.agent._target_q_network, X_val, y_val)
+        stats = metrics_by_network(self.agent._target_q_network, X_val, y_val)
 
         with self.writer.as_default():
             for k, v in stats.items():
                 tf.summary.scalar(k, v, step=self.global_episode)
 
     def evaluate(self, X_test, y_test):
-        return compute_metrics(self.agent._target_q_network, X_test, y_test)
+        return metrics_by_network(self.agent._target_q_network, X_test, y_test)
+
+    def save_model(self):
+        """Saves Q-network as pickle to `model_dir`."""
+        with open(self.model_dir + ".pkl", "wb") as f:  # Save Q-network as pickle
+            pickle.dump(self.agent._target_q_network, f)
+
+    @staticmethod
+    def load_model(fp: str):
+        """Static method to load Q-network pickle from given filepath."""
+        with open(fp + ".pkl", "rb") as f:  # Load the Q-network
+            network = pickle.load(f)
+        return network
 
 
-class TrainCartPole(TrainClass):
+class TrainCartPole(TrainWrapper):
     def collect_metrics(self):
-        # Code is based of https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
         total_return = 0.0
         for _ in range(self.val_episodes):
             time_step = self.val_env.reset()
@@ -154,3 +167,11 @@ class TrainCartPole(TrainClass):
 
     def evaluate(self):
         return self.collect_metrics()
+
+    def save_model(self):
+        saver = PolicySaver(self.agent.policy)
+        saver.save(self.model_dir)
+
+    @staticmethod
+    def load_model(fp: str):
+        return tf.saved_model.load(fp)

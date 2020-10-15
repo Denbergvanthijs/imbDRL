@@ -35,7 +35,6 @@ class ClassifyEnv(PyEnvironment):
         return ts.restart(self._state)
 
     def _step(self, action):
-
         if self._episode_ended:
             # The last action ended the episode. Ignore the current action and start a new episode
             return self.reset()

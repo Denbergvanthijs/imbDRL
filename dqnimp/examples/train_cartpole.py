@@ -1,12 +1,10 @@
 from datetime import datetime
 
-from dqnimp.train import TrainCartPole, TrainCustom
+from dqnimp.trainwrapper import TrainCartPole
 from tf_agents.environments import suite_gym
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
 
-# Code is based of https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
-
-episodes = 20_000  # Total episodes
+episodes = 1_00  # Total episodes
 warmup_episodes = 100  # Amount of warmup steps before training
 memory_length = 100_000  # Max Replay Memory length
 
@@ -29,6 +27,4 @@ val_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))
 model = TrainCartPole(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes, model_dir, log_dir)
 model.compile(train_env, val_env, conv_layers, dense_layers, dropout_layers)
 model.train()
-model.evaluate()
-
-q_net = TrainCustom.load_model(model_dir)
+model.evaluate()  # TODO: add video as evaluation
