@@ -16,12 +16,12 @@ lr = 0.001  # Learning rate
 gamma = 0.99  # Discount factor
 min_epsilon = 0.1  # Minimal and final chance of choosing random action
 decay_episodes = 100  # Number of episodes to decay from 1.0 to `min_epsilon`
-ddqn = True  # Whether to use a Double DQN or DQN
 
 model_dir = "./models/" + (NOW := datetime.now().strftime('%Y%m%d_%H%M%S'))  # Location to save the Q-network as a pickle
 log_dir = "./logs/" + NOW  # Location to save the logs needed for tensorboard
 
-train_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))  # Change OpenAI Gym environment to Python environment to TF environment
+# Change OpenAI Gym environment to Python environment to TF environment
+train_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))
 val_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))
 
 model = TrainCartPole(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes, model_dir, log_dir)
