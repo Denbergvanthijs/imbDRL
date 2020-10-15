@@ -11,6 +11,7 @@ from tf_agents.policies.random_tf_policy import RandomTFPolicy
 from tf_agents.replay_buffers.tf_uniform_replay_buffer import \
     TFUniformReplayBuffer
 from tf_agents.utils import common
+from tqdm import tqdm
 
 from dqnimp.utils import collect_data, metrics_by_network
 
@@ -94,7 +95,7 @@ class TrainWrapper(ABC):
         self.agent.train = common.function(self.agent.train)  # Optimalization
 
         self.collect_metrics(*args)  # Initial collection for step 0
-        for _ in range(self.episodes):
+        for _ in tqdm(range(self.episodes)):
             # Collect a few steps using collect_policy and save to `replay_buffer`
             collect_data(self.train_env, self.agent.collect_policy, self.replay_buffer, self.collect_steps_per_episode)
 
@@ -103,7 +104,8 @@ class TrainWrapper(ABC):
             train_loss = self.agent.train(experiences).loss
 
             if not self.global_episode % self.log_every:
-                print(f"step={self.global_episode.numpy()}; {train_loss=:.6f}")
+                with self.writer.as_default():
+                    tf.summary.scalar("train_loss", train_loss, step=self.global_episode)
 
             if not self.global_episode % self.val_every:
                 self.collect_metrics(*args)
