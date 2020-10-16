@@ -66,9 +66,9 @@ def load_creditcard(fp_train: str = "./data/credit0.csv", fp_test: str = "./data
     if normalization:
         mini, maxi = X_train.min(axis=0), X_train.max(axis=0)
         X_train -= mini
-        X_train /= maxi-mini
+        X_train /= maxi - mini
         X_test -= mini
-        X_test /= maxi-mini
+        X_test /= maxi - mini
 
     return X_train.values, y_train.values, X_test.values, y_test.values  # Numpy arrays
 

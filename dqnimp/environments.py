@@ -5,7 +5,10 @@ from tf_agents.trajectories import time_step as ts
 
 
 class ClassifyEnv(PyEnvironment):
+    """Custom `PyEnvironment` environment for imbalanced classification."""
+
     def __init__(self, X_train, y_train, imb_rate):
+        """Initialization of environment with X_train and y_train."""
         self._action_spec = BoundedArraySpec(shape=(), dtype=np.int32, minimum=0, maximum=1, name='action')
         self._observation_spec = ArraySpec(shape=X_train.shape[1:], dtype=np.float32, name='observation')
         self._episode_ended = False
@@ -21,12 +24,15 @@ class ClassifyEnv(PyEnvironment):
         self._state = self.X_train[self.id[self.episode_step]]
 
     def action_spec(self):
+        """Definition of the actions."""
         return self._action_spec
 
     def observation_spec(self):
+        """Definition of the observations."""
         return self._observation_spec
 
     def _reset(self):
+        """Shuffles data and returns the first state to begin training on new episode."""
         np.random.shuffle(self.id)
         self.episode_step = 0  # Reset episode step counter at the end of every episode
         self._state = self.X_train[self.id[self.episode_step]]
@@ -35,6 +41,10 @@ class ClassifyEnv(PyEnvironment):
         return ts.restart(self._state)
 
     def _step(self, action):
+        """Take one step in the environment.
+        If the action is correct, the environment will either return 1 or `imb_rate` depending on the current class.
+        If the action is incorrect, the environment will either return -1 or -`imb_rate` depending on the current class.
+        """
         if self._episode_ended:
             # The last action ended the episode. Ignore the current action and start a new episode
             return self.reset()

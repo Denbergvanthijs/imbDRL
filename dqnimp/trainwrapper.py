@@ -18,13 +18,16 @@ from dqnimp.data import collect_data
 
 
 class TrainWrapper(ABC):
-    def __init__(self, episodes: int, warmup_episodes: int, lr: float, gamma: float, min_epsilon: float, decay_episodes: int, model_dir: str,
-                 log_dir: str, batch_size: int = 64,  memory_length: int = 100_000, collect_steps_per_episode: int = 1, log_every: int = 200,
-                 val_every: int = 1_000, val_episodes: int = 10, target_model_update: int = 1, target_update_tau: float = 1.0, ddqn: bool = True):
-        """Wrapper to make training easier.
+    """Wrapper for (D)DQN training, validation, saving etc."""
+
+    def __init__(self, episodes: int, warmup_episodes: int, lr: float, gamma: float, min_epsilon: float, decay_episodes: int,
+                 model_dir: str, log_dir: str, batch_size: int = 64, memory_length: int = 100_000, collect_steps_per_episode: int = 1,
+                 log_every: int = 200, val_every: int = 1_000, val_episodes: int = 10, target_model_update: int = 1,
+                 target_update_tau: float = 1.0, ddqn: bool = True):
+        """
+        Wrapper to make training easier.
         Code is partly based of https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
         """
-
         self.episodes = episodes  # Total episodes
         self.warmup_episodes = warmup_episodes  # Amount of warmup steps before training
         self.batch_size = batch_size  # Batch size of Replay Memory
@@ -53,7 +56,7 @@ class TrainWrapper(ABC):
             1.0, self.global_episode, self.decay_episodes, end_learning_rate=self.min_epsilon)
         self.optimizer = Adam(learning_rate=self.lr)
 
-    def compile(self, train_env, val_env, conv_layers, dense_layers, dropout_layers):
+    def compile_model(self, train_env, val_env, conv_layers, dense_layers, dropout_layers):
         """Initializes the Q-network, agent, collect policy and replay buffer."""
         self.train_env = train_env
         self.val_env = val_env
@@ -117,10 +120,12 @@ class TrainWrapper(ABC):
 
     @abstractmethod
     def save_model(self):
+        """Abstract method for saving the model/network/policy to disk."""
         pass
 
     @abstractmethod
     def load_model(fp: str):
+        """Abstract method for loading the model/network/policy of disk."""
         pass
 
     @abstractmethod
@@ -135,7 +140,10 @@ class TrainWrapper(ABC):
 
 
 class TrainCustom(TrainWrapper):
+    """Class for the custom training environment."""
+
     def collect_metrics(self, X_val, y_val):
+        """Collects metrics using the trained Q-network."""
         stats = metrics_by_network(self.agent._target_q_network, X_val, y_val)
 
         with self.writer.as_default():
@@ -143,6 +151,7 @@ class TrainCustom(TrainWrapper):
                 tf.summary.scalar(k, v, step=self.global_episode)
 
     def evaluate(self, X_test, y_test):
+        """Final evaluation of trained Q-network with X_test and y_test."""
         return metrics_by_network(self.agent._target_q_network, X_test, y_test)
 
     def save_model(self):
@@ -159,7 +168,10 @@ class TrainCustom(TrainWrapper):
 
 
 class TrainCartPole(TrainWrapper):
+    """Class for the CartPole environment."""
+
     def collect_metrics(self):
+        """Calculates the average return for `val_episodes` using the trained policy."""
         total_return = 0.0
         for _ in range(self.val_episodes):
             time_step = self.val_env.reset()
@@ -176,12 +188,15 @@ class TrainCartPole(TrainWrapper):
             tf.summary.scalar("avg_return", avg_return.numpy()[0], step=self.global_episode)
 
     def evaluate(self):
+        """Final evaluation of policy."""
         return self.collect_metrics()
 
     def save_model(self):
+        """Saves the policy to `model_dir`."""
         saver = PolicySaver(self.agent.policy)
         saver.save(self.model_dir)
 
     @staticmethod
     def load_model(fp: str):
+        """Loads a saved policy from given filepath."""
         return tf.saved_model.load(fp)

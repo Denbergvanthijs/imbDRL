@@ -13,7 +13,6 @@ from tf_agents.bandits.agents.neural_epsilon_greedy_agent import \
 from tf_agents.bandits.environments.classification_environment import \
     ClassificationBanditEnvironment
 from tf_agents.drivers.dynamic_step_driver import DynamicStepDriver
-from tf_agents.metrics import tf_metrics
 from tf_agents.networks.q_network import QNetwork
 from tqdm import tqdm
 

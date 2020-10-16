@@ -37,7 +37,7 @@ val_env = TFPyEnvironment(ClassifyEnv(X_val, y_val, imb_rate))
 
 model = TrainCustom(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes, model_dir,
                     log_dir, target_model_update=target_model_update, target_update_tau=target_update_tau)
-model.compile(train_env, val_env, conv_layers, dense_layers, dropout_layers)
+model.compile_model(train_env, val_env, conv_layers, dense_layers, dropout_layers)
 model.train(X_val, y_val)
 stats = model.evaluate(X_test, y_test)
 print(*[(k, round(v, 6)) for k, v in stats.items()])

@@ -5,7 +5,7 @@ from tf_agents.trajectories import time_step as ts
 
 
 def metrics_by_network(network, X: list, y: list) -> dict:
-    """Computes the confusion matrix for a given dataset."""
+    """Computes metrics using a given network."""
     q, _ = network(X)
     y_pred = np.argmax(q.numpy(), axis=1)  # Max action for each x in X
 
@@ -13,6 +13,7 @@ def metrics_by_network(network, X: list, y: list) -> dict:
 
 
 def metrics_by_policy(X_val: list, y_val: list, policy) -> dict:
+    """Computes metrics using a given policy."""
     y_pred = []
 
     for x in X_val:
@@ -26,6 +27,7 @@ def metrics_by_policy(X_val: list, y_val: list, policy) -> dict:
 
 
 def classify_metrics(y_true: list, y_pred: list) -> dict:
+    """Computes metrics using y_true and y_pred."""
     TN, FP, FN, TP = confusion_matrix(y_true, y_pred).ravel()
 
     recall = TP / denom if (denom := TP + FN) else 0  # Sensitivity, True Positive Rate (TPR)

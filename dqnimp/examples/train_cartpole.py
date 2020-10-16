@@ -25,6 +25,6 @@ train_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))
 val_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))
 
 model = TrainCartPole(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes, model_dir, log_dir)
-model.compile(train_env, val_env, conv_layers, dense_layers, dropout_layers)
+model.compile_model(train_env, val_env, conv_layers, dense_layers, dropout_layers)
 model.train()
 model.evaluate()  # TODO: add video as evaluation
