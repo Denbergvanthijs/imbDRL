@@ -82,3 +82,4 @@ with tf.device('/GPU:0'):  # due to b/128333994
 
 stats = metrics_by_network(agent._reward_network, X_test, y_test)
 print(*[(k, round(v, 6)) for k, v in stats.items()])
+# ('Gmean', 0.98345) ('Fdot5', 0.532436) ('F1', 0.642066) ('F2', 0.80855) ('TP', 87) ('TN', 8873) ('FP', 95) ('FN', 2)
