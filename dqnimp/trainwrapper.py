@@ -13,7 +13,8 @@ from tf_agents.replay_buffers.tf_uniform_replay_buffer import \
 from tf_agents.utils import common
 from tqdm import tqdm
 
-from dqnimp.utils import collect_data, metrics_by_network
+from dqnimp.metrics import metrics_by_network
+from dqnimp.data import collect_data
 
 
 class TrainWrapper(ABC):

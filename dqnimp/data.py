@@ -3,6 +3,8 @@ from pandas import read_csv
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.datasets import cifar10, fashion_mnist, imdb, mnist
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tf_agents.trajectories import trajectory
+from tqdm import tqdm
 
 
 def load_image(data_source: str):
@@ -129,7 +131,27 @@ def get_imb_data(X, y, imb_rate: float, min_class: list, maj_class: list):
     return X_imb, y_imb
 
 
+def collect_step(environment, policy, buffer) -> None:
+    """Data collection for 1 step."""
+    time_step = environment.current_time_step()
+    action_step = policy.action(time_step)
+    next_time_step = environment.step(action_step.action)
+    traj = trajectory.from_transition(time_step, action_step, next_time_step)
+
+    buffer.add_batch(traj)
+
+
+def collect_data(env, policy, buffer, steps: int, logging: bool = False) -> None:
+    """Collect data for a number of steps. Mainly used for warmup period."""
+    if logging:
+        for _ in tqdm(range(steps)):
+            collect_step(env, policy, buffer)
+    else:
+        for _ in range(steps):
+            collect_step(env, policy, buffer)
+
+
 if __name__ == "__main__":
-    X_train, y_train, X_test, y_test, X_val, y_val = load_data("mnist", 0.05, [3], [8])
+    X_train, y_train, X_test, y_test, X_val, y_val = load_data("credit", 0.00173, [1], [0])
     print(*[i.dtype for i in (X_train, y_train, X_test, y_test, X_val, y_val)])
     print(*[i.shape for i in (X_train, y_train, X_test, y_test, X_val, y_val)])
