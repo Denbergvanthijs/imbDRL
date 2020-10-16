@@ -59,7 +59,11 @@ class ClassifyEnv(PyEnvironment):
             self._episode_ended = True
 
         self._state = self.X_train[self.id[self.episode_step]]  # Update state with new datapoint
-        return ts.termination(self._state, reward)
+
+        if self._episode_ended:
+            return ts.termination(self._state, reward)
+        else:
+            return ts.transition(self._state, reward)
 
 
 if __name__ == "__main__":
