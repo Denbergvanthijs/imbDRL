@@ -131,7 +131,7 @@ def test_imbalance_data():
     y = np.arange(11)
 
     with pytest.raises(ValueError) as exc:
-        X, y = data.imbalance_data(X, y, 0.2, [1], [0])
+        data.imbalance_data(X, y, 0.2, [1], [0])
     assert "must contain the same amount of rows" in str(exc.value)
 
     X = np.arange(100)
