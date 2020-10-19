@@ -97,9 +97,9 @@ def load_creditcard(fp_train: str = "./data/credit0.csv", fp_test: str = "./data
     :rtype: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
     """
     if not os.path.isfile(fp_train):
-        raise ValueError(f"`fp_train` {fp_train} does not exist.")
+        raise FileNotFoundError(f"`fp_train` {fp_train} does not exist.")
     if not os.path.isfile(fp_test):
-        raise ValueError(f"`fp_test` {fp_test} does not exist.")
+        raise FileNotFoundError(f"`fp_test` {fp_test} does not exist.")
     if not isinstance(normalization, bool):
         raise TypeError(f"`normalization` must be of type `bool`, not {type(normalization)}")
 

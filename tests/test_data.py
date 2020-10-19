@@ -65,15 +65,14 @@ def test_load_creditcard(tmp_path):
     cols = "Time,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12,V13,V14,V15,V16,V17,V18,V19,V20,V21,V22,V23,V24,V25,V26,V27,V28,Amount,Class\n"
     row = str(list(range(31))).strip("[]") + "\n"
 
-    # Integer `config`
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(FileNotFoundError) as exc:
         data.load_creditcard(fp_train=tmp_path / "thisfiledoesnotexist.csv")
     assert "fp_train" in str(exc.value)
 
     with open(data_file := tmp_path / "data_file.csv", "w") as f:
         f.writelines([cols, row, row])
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(FileNotFoundError) as exc:
         data.load_creditcard(fp_train=data_file, fp_test=tmp_path / "thisfiledoesnotexist.csv")
     assert "fp_test" in str(exc.value)
 
