@@ -18,3 +18,10 @@ The classification model uses a DDQN as published in [this paper](https://arxiv.
 To start training, run ```python train.py``` in the terminal after activating your conda environment.
 
 To enable [TensorBoard](https://www.tensorflow.org/tensorboard), run ```tensorboard --logdir logs```.
+
+## Contributions
+
+Please run Pytest and Flake8 before any Pull Request:
+
+* ```pytest -vs```
+* ```flake8 . --ignore=D100,D104,D205,D401,I100,I201 --show-source --enable-extension=G --max-line-length=140 --max-complexity=10 --count```
