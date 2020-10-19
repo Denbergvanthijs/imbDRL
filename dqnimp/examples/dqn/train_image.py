@@ -30,7 +30,8 @@ maj_class = [0, 1, 3, 4, 5, 6, 7, 8, 9]  # Majority classes
 X_train, y_train, X_test, y_test, = load_image("mnist")
 X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test, imb_rate, min_class, maj_class)
 
-train_env = TFPyEnvironment(ClassifyEnv(X_train, y_train, imb_rate))  # Change Python environment to TF environment
+# Change Python environment to TF environment
+train_env = TFPyEnvironment(ClassifyEnv(X_train, y_train, imb_rate))
 val_env = TFPyEnvironment(ClassifyEnv(X_val, y_val, imb_rate))
 
 model = TrainCustom(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes, model_dir, log_dir,

@@ -103,6 +103,7 @@ class TrainWrapper(ABC):
         self.collect_metrics(*args)  # Initial collection for step 0
         for _ in tqdm(range(self.episodes)):
             # Collect a few steps using collect_policy and save to `replay_buffer`
+            # TODO: determine which policy to use: collect_policy or policy
             collect_data(self.train_env, self.agent.collect_policy, self.replay_buffer, self.collect_steps_per_episode)
 
             # Sample a batch of data from `replay_buffer` and update the agent's network

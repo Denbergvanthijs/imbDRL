@@ -6,14 +6,15 @@ import tensorflow_probability as tfp
 from dqnimp.data import get_train_test_val, load_image
 from dqnimp.metrics import metrics_by_network
 from tensorflow.keras.optimizers import Adam
-from tf_agents.bandits.agents.examples.v2.trainer import (get_replay_buffer,
-                                                          get_training_loop_fn)
+from tf_agents.bandits.agents.examples.v2.trainer import get_training_loop_fn
 from tf_agents.bandits.agents.neural_epsilon_greedy_agent import \
     NeuralEpsilonGreedyAgent
 from tf_agents.bandits.environments.classification_environment import \
     ClassificationBanditEnvironment
 from tf_agents.drivers.dynamic_step_driver import DynamicStepDriver
 from tf_agents.networks.q_network import QNetwork
+from tf_agents.replay_buffers.tf_uniform_replay_buffer import \
+    TFUniformReplayBuffer
 from tqdm import tqdm
 
 tf.compat.v1.enable_v2_behavior()  # The trainer only runs with V2 enabled.
@@ -52,7 +53,8 @@ with tf.device('/GPU:0'):  # due to b/128333994
     network = QNetwork(input_tensor_spec=environment.observation_spec(),
                        action_spec=environment.action_spec(),
                        conv_layer_params=conv_layers,
-                       fc_layer_params=dense_layers)
+                       fc_layer_params=dense_layers,
+                       dropout_layer_params=dropout_layers)
 
     agent = NeuralEpsilonGreedyAgent(time_step_spec=environment.time_step_spec(),
                                      action_spec=environment.action_spec(),
@@ -61,7 +63,7 @@ with tf.device('/GPU:0'):  # due to b/128333994
                                      epsilon=eps_decay,
                                      train_step_counter=global_step)
 
-    replay_buffer = get_replay_buffer(agent.policy.trajectory_spec, environment.batch_size, steps_per_loop)
+    replay_buffer = TFUniformReplayBuffer(agent.policy.trajectory_spec, environment.batch_size, steps_per_loop)
 
     driver = DynamicStepDriver(env=environment,
                                policy=agent.collect_policy,
