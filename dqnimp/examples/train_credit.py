@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from dqnimp.data import load_data
+from dqnimp.data import get_train_test_val, load_creditcard
 from dqnimp.environments import ClassifyEnv
 from dqnimp.trainwrapper import TrainCustom
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
@@ -27,9 +27,8 @@ log_dir = "./logs/" + NOW
 imb_rate = 0.00173  # Imbalance rate
 min_class = [1]  # Minority classes
 maj_class = [0]  # Majority classes
-datasource = "credit"  # The dataset to be selected
-normalization = True
-X_train, y_train, X_test, y_test, X_val, y_val = load_data(datasource, imb_rate, min_class, maj_class, normalization=normalization)
+X_train, y_train, X_test, y_test, = load_creditcard(normalization=True)
+X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test, imb_rate, min_class, maj_class)
 
 # Change Python environment to TF environment
 train_env = TFPyEnvironment(ClassifyEnv(X_train, y_train, imb_rate))

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from dqnimp.data import load_data
+from dqnimp.data import get_train_test_val, load_image
 from dqnimp.environments import ClassifyEnv
 from dqnimp.trainwrapper import TrainCustom
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
@@ -27,8 +27,8 @@ log_dir = "./logs/" + NOW
 imb_rate = 0.01  # Imbalance rate
 min_class = [2]  # Minority classes, same setup as in original paper
 maj_class = [0, 1, 3, 4, 5, 6, 7, 8, 9]  # Majority classes
-datasource = "mnist"  # The dataset to be selected
-X_train, y_train, X_test, y_test, X_val, y_val = load_data(datasource, imb_rate, min_class, maj_class)
+X_train, y_train, X_test, y_test, = load_image("mnist")
+X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test, imb_rate, min_class, maj_class)
 
 train_env = TFPyEnvironment(ClassifyEnv(X_train, y_train, imb_rate))  # Change Python environment to TF environment
 val_env = TFPyEnvironment(ClassifyEnv(X_val, y_val, imb_rate))

@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-from dqnimp.data import load_data
+from dqnimp.data import get_train_test_val, load_image
 from dqnimp.metrics import metrics_by_network
 from tensorflow.keras.optimizers import Adam
 from tf_agents.bandits.agents.examples.v2.trainer import (get_replay_buffer,
@@ -36,8 +36,9 @@ log_dir = "./logs/" + (NOW := datetime.now().strftime('%Y%m%d_%H%M%S'))
 imb_rate = 0.01  # Imbalance rate
 min_class = [2]  # Minority classes, same setup as in original paper
 maj_class = [0, 1, 3, 4, 5, 6, 7, 8, 9]  # Majority classes
-datasource = "mnist"  # The dataset to be selected
-X_train, y_train, X_test, y_test, X_val, y_val = load_data(datasource, imb_rate, min_class, maj_class, normalization=True)
+X_train, y_train, X_test, y_test, = load_image("mnist")
+X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test, imb_rate, min_class, maj_class)
+
 
 with tf.device('/GPU:0'):  # due to b/128333994
     distr = tfp.distributions.Bernoulli(probs=[[imb_rate, -imb_rate], [-1, 1]], dtype=tf.float32)
