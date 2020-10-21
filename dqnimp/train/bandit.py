@@ -79,7 +79,6 @@ class TrainBandit(ABC):
 
     def train(self, *args):
         """Starts the training of the model. Includes warmup period, metrics collection and model saving."""
-
         self.collect_metrics(*args)  # Initial collection for step 0
         for _ in tqdm(range(self.episodes)):
             loss_info = self.training_loop()
