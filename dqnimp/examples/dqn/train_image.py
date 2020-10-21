@@ -2,7 +2,7 @@ from datetime import datetime
 
 from dqnimp.data import get_train_test_val, load_image
 from dqnimp.environments import ClassifyEnv
-from dqnimp.trainwrapper import TrainCustom
+from dqnimp.train.dqn import TrainCustomDDQN
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
 
 episodes = 50_000  # Total episodes, 120_000 in original paper, the original code only trains every 4 steps
@@ -34,9 +34,9 @@ X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_t
 train_env = TFPyEnvironment(ClassifyEnv(X_train, y_train, imb_rate))
 val_env = TFPyEnvironment(ClassifyEnv(X_val, y_val, imb_rate))
 
-model = TrainCustom(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes, model_dir, log_dir,
-                    collect_steps_per_episode=collect_steps_per_episode,
-                    target_model_update=target_model_update, target_update_tau=target_update_tau)
+model = TrainCustomDDQN(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes, model_dir, log_dir,
+                        collect_steps_per_episode=collect_steps_per_episode,
+                        target_model_update=target_model_update, target_update_tau=target_update_tau)
 
 model.compile_model(train_env, val_env, conv_layers, dense_layers, dropout_layers)
 model.train(X_val, y_val)
