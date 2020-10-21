@@ -2,7 +2,7 @@ from datetime import datetime
 
 import tensorflow as tf
 import tensorflow_probability as tfp
-from dqnimp.data import get_train_test_val, load_creditcard
+from dqnimp.data import get_train_test_val, load_imdb
 from dqnimp.train.bandit import TrainCustomBandit
 from tf_agents.bandits.environments.classification_environment import \
     ClassificationBanditEnvironment
@@ -11,21 +11,21 @@ training_loops = 1_000  # Total training loops
 batch_size = 64  # Batch size of each step
 steps_per_loop = 64  # Number of steps to take in the environment for each loop
 
-conv_layers = None   # Convolutional layers
-dense_layers = (256, 256, )  # Dense layers
-dropout_layers = (0.0, 0.3, )  # Dropout layers
+conv_layers = None  # Convolutional layers
+dense_layers = (256, 256)  # Dense layers
+dropout_layers = (0.0, 0.3)  # Dropout layers
 
-lr = 0.001  # Learning Rate
-min_epsilon = 0.01  # Minimal chance of choosing random action
-decay_steps = 500  # Number of episodes to decay from 1.0 to `min_epsilon`
+lr = 0.001  # Learning rate
+min_epsilon = 0.01  # Minimal and final chance of choosing random action
+decay_steps = 250  # Number of steps to decay from 1.0 to `min_epsilon`
 
 model_dir = "./models/" + (NOW := datetime.now().strftime('%Y%m%d_%H%M%S'))
 log_dir = "./logs/" + NOW
 
-imb_rate = 0.00173  # Imbalance rate
-min_class = [1]  # Minority classes
-maj_class = [0]  # Majority classes
-X_train, y_train, X_test, y_test, = load_creditcard(normalization=True)
+imb_rate = 0.01  # Imbalance rate
+min_class = [2]  # Minority classes
+maj_class = [0, 1, 3, 4, 5, 6, 7, 8, 9]  # Majority classes
+X_train, y_train, X_test, y_test, = load_imdb()
 X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test, imb_rate, min_class, maj_class)
 
 bernoulli = tfp.distributions.Bernoulli(probs=[[imb_rate, -imb_rate], [-1, 1]], dtype=tf.float32)
@@ -44,3 +44,4 @@ model.compile_model(train_env, conv_layers, dense_layers, dropout_layers)
 model.train(X_val, y_val)
 stats = model.evaluate(X_test, y_test)
 print(*[(k, round(v, 6)) for k, v in stats.items()])
+# ('Gmean', 0.28783) ('Fdot5', 0.109092) ('F1', 0.162604) ('F2', 0.319161) ('TP', 1114) ('TN', 1162) ('FP', 11338) ('FN', 136)
