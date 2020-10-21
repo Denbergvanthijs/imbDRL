@@ -2,8 +2,8 @@ from datetime import datetime
 
 import tensorflow as tf
 import tensorflow_probability as tfp
-from dqnimp.data import get_train_test_val, load_image
-from dqnimp.train.bandit import TrainCustomBandit
+from imbDRL.data import get_train_test_val, load_image
+from imbDRL.train.bandit import TrainCustomBandit
 from tf_agents.bandits.environments.classification_environment import \
     ClassificationBanditEnvironment
 

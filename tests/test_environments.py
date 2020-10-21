@@ -1,10 +1,10 @@
 import numpy as np
-from dqnimp.environments import ClassifyEnv
+from imbDRL.environments import ClassifyEnv
 from tf_agents.environments.utils import validate_py_environment
 
 
 def test_ClassifyEnv():
-    """Tests dqnimp.environments.ClassifyEnv."""
+    """Tests imbDRL.environments.ClassifyEnv."""
     X = np.arange(10, dtype=np.float32)
     y = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1], dtype=np.int32)
 
@@ -13,7 +13,7 @@ def test_ClassifyEnv():
 
 
 def test_reset():
-    """Tests dqnimp.environments.ClassifyEnv._reset."""
+    """Tests imbDRL.environments.ClassifyEnv._reset."""
     X = np.arange(10, dtype=np.float32)
     y = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1], dtype=np.int32)
 
@@ -31,7 +31,7 @@ def test_reset():
 
 
 def test_step():
-    """Tests dqnimp.environments.ClassifyEnv._step."""
+    """Tests imbDRL.environments.ClassifyEnv._step."""
     X = np.arange(10, dtype=np.float32)
     y = np.ones(10, dtype=np.int32)  # All labels are positive
 

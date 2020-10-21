@@ -1,5 +1,5 @@
-from dqnimp.data import get_train_test_val, load_creditcard
-from dqnimp.metrics import classification_metrics
+from imbDRL.data import get_train_test_val, load_creditcard
+from imbDRL.metrics import classification_metrics
 from xgboost import XGBClassifier
 
 imb_rate = 0.00173  # Imbalance rate

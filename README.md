@@ -1,4 +1,4 @@
-# DQNimp
+# imbDRL
 
 Deep Q Network, improved.
 

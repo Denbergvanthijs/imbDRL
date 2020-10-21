@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from dqnimp.data import get_train_test_val, load_image
-from dqnimp.environments import ClassifyEnv
-from dqnimp.train.dqn import TrainCustomDDQN
+from imbdrl.data import get_train_test_val, load_image
+from imbdrl.environments import ClassifyEnv
+from imbdrl.train.dqn import TrainCustomDDQN
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
 
 episodes = 50_000  # Total episodes, 120_000 in original paper, the original code only trains every 4 steps

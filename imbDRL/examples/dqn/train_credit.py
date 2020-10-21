@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from dqnimp.data import get_train_test_val, load_creditcard
-from dqnimp.environments import ClassifyEnv
-from dqnimp.train.dqn import TrainCustomDDQN
+from imbdrl.data import get_train_test_val, load_creditcard
+from imbdrl.environments import ClassifyEnv
+from imbdrl.train.dqn import TrainCustomDDQN
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
 
 episodes = 50_000  # Total number of episodes

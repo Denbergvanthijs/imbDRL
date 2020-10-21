@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 import tensorflow as tf
-from dqnimp.metrics import metrics_by_network
+from imbDRL.metrics import metrics_by_network
 from tensorflow.keras.optimizers import Adam
 from tf_agents.bandits.agents.examples.v2.trainer import get_training_loop_fn
 from tf_agents.bandits.agents.neural_epsilon_greedy_agent import \

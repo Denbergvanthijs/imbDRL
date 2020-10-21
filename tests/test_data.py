@@ -1,10 +1,10 @@
-import dqnimp.data as data
+import imbDRL.data as data
 import numpy as np
 import pytest
 
 
 def test_load_image():
-    """Tests dqnimp.data.load_image."""
+    """Tests imbDRL.data.load_image."""
     # Empty `data_source`
     with pytest.raises(ValueError) as exc:
         data.load_image("")
@@ -34,7 +34,7 @@ def test_load_image():
 
 
 def test_load_imdb():
-    """Tests dqnimp.data.load_imdb."""
+    """Tests imbDRL.data.load_imdb."""
     # Integer `config`
     with pytest.raises(TypeError) as exc:
         data.load_imdb(config=500)
@@ -61,7 +61,7 @@ def test_load_imdb():
 
 
 def test_load_creditcard(tmp_path):
-    """Tests dqnimp.data.load_creditcard."""
+    """Tests imbDRL.data.load_creditcard."""
     cols = "Time,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12,V13,V14,V15,V16,V17,V18,V19,V20,V21,V22,V23,V24,V25,V26,V27,V28,Amount,Class\n"
     row = str(list(range(31))).strip("[]") + "\n"
 
@@ -86,7 +86,7 @@ def test_load_creditcard(tmp_path):
 
 
 def test_get_train_test_val():
-    """Tests dqnimp.data.get_train_test_val."""
+    """Tests imbDRL.data.get_train_test_val."""
     X = [[1, 2], [3, 4], [5, 6]]
     y = [0, 1, 2]
 
@@ -104,7 +104,7 @@ def test_get_train_test_val():
 
 
 def test_imbalance_data():
-    """Tests dqnimp.data.imbalance_data."""
+    """Tests imbDRL.data.imbalance_data."""
     X = [7, 7, 7, 8, 8, 8]
     y = [2, 2, 2, 3, 3, 3]
 

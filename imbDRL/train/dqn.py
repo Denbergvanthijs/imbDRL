@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 import tensorflow as tf
-from dqnimp.data import collect_data
-from dqnimp.metrics import metrics_by_network
+from imbDRL.data import collect_data
+from imbDRL.metrics import metrics_by_network
 from tensorflow.keras.optimizers import Adam
 from tf_agents.agents.dqn.dqn_agent import DdqnAgent
 from tf_agents.networks.q_network import QNetwork

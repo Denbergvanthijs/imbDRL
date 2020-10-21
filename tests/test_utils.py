@@ -1,16 +1,16 @@
 import pytest
-import dqnimp.utils as utils
+import imbDRL.utils as utils
 
 
 def test_plot_confusion_matrix():
-    """Tests dqnimp.utils.plot_confusion_matrix."""
+    """Tests imbDRL.utils.plot_confusion_matrix."""
     with pytest.raises(ValueError) as exc:
         utils.plot_confusion_matrix(1, 2, 3, "test")
     assert "Not all arguments are integers" in str(exc.value)
 
 
 def test_split_csv(tmp_path):
-    """Tests dqnimp.utils.split_csv."""
+    """Tests imbDRL.utils.split_csv."""
     cols = "Time,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12,V13,V14,V15,V16,V17,V18,V19,V20,V21,V22,V23,V24,V25,V26,V27,V28,Amount,Class\n"
     row = str(list(range(31))).strip("[]") + "\n"
 

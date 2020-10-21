@@ -1,10 +1,10 @@
-import dqnimp.metrics as metrics
+import imbDRL.metrics as metrics
 import numpy as np
 import pytest
 
 
 def test_metrics_by_network():
-    """Tests dqnimp.metrics.metrics_by_network."""
+    """Tests imbDRL.metrics.metrics_by_network."""
     X = [7, 7, 7, 8, 8, 8]
     y = [2, 2, 2, 3, 3, 3]
 
@@ -25,7 +25,7 @@ def test_metrics_by_network():
 
 
 def test_metrics_by_policy():
-    """Tests dqnimp.metrics.metrics_by_policy."""
+    """Tests imbDRL.metrics.metrics_by_policy."""
     X = [7, 7, 7, 8, 8, 8]
     y = [2, 2, 2, 3, 3, 3]
 
@@ -46,7 +46,7 @@ def test_metrics_by_policy():
 
 
 def test_classification_metrics():
-    """Tests dqnimp.metrics.classification_metrics."""
+    """Tests imbDRL.metrics.classification_metrics."""
     y_true = [7, 7, 7, 8, 8, 8]
     y_pred = [2, 2, 2, 3, 3, 3]
 
