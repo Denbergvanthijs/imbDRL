@@ -5,7 +5,10 @@ from tf_agents.trajectories import time_step as ts
 
 
 class ClassifyEnv(PyEnvironment):
-    """Custom `PyEnvironment` environment for imbalanced classification."""
+    """
+    Custom `PyEnvironment` environment for imbalanced classification.
+    Based on https://www.tensorflow.org/agents/tutorials/2_environments_tutorial
+    """
 
     def __init__(self, X_train, y_train, imb_rate):
         """Initialization of environment with X_train and y_train."""
@@ -49,23 +52,23 @@ class ClassifyEnv(PyEnvironment):
             # The last action ended the episode. Ignore the current action and start a new episode
             return self.reset()
 
-        curr_y_true = self.y_train[self.id[self.episode_step]]
+        env_action = self.y_train[self.id[self.episode_step]]
         self.episode_step += 1
 
-        if action == curr_y_true:  # Correct action
-            if curr_y_true:  # Minority
+        if action == env_action:  # Correct action
+            if env_action:  # Minority
                 reward = 1
             else:  # Majority
                 reward = self.imb_rate
 
         else:  # Incorrect action
-            if curr_y_true:  # Minority
+            if env_action:  # Minority
                 reward = -1
                 self._episode_ended = True  # Stop episode when minority class is misclassified
             else:  # Majority
                 reward = -self.imb_rate
 
-        if self.episode_step == self.X_len - 1:
+        if self.episode_step == self.X_len - 1:  # If last step in data
             self._episode_ended = True
 
         self._state = self.X_train[self.id[self.episode_step]]  # Update state with new datapoint
@@ -74,20 +77,3 @@ class ClassifyEnv(PyEnvironment):
             return ts.termination(self._state, reward)
         else:
             return ts.transition(self._state, reward)
-
-
-if __name__ == "__main__":
-    from tf_agents.environments.utils import validate_py_environment
-
-    from dqnimp.data import load_data
-
-    imb_rate = 0.00173  # Imbalance rate
-    min_class = [1]  # Minority classes, must be same as trained model
-    maj_class = [0]  # Majority classes, must be same as trained model
-    datasource = "credit"  # The dataset to be selected
-
-    # Remove classes ∉ {min_class, maj_class}, imbalance the dataset
-    X_train, y_train, X_test, y_test, X_val, y_val = load_data(datasource, imb_rate, min_class, maj_class)  # Load all data
-
-    environment = ClassifyEnv(X_train, y_train, imb_rate)
-    validate_py_environment(environment, episodes=5)
