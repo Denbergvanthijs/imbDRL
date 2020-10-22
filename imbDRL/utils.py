@@ -76,7 +76,7 @@ def get_reward_distribution(imb_rate: float):
 
     From the documentation of tf_agents.bandits.environments.ClassificationBanditEnvironment:
 
-    reward_distribution: a `tfd.Distribution` with event_shape 
+    reward_distribution: a `tfd.Distribution` with event_shape
         `[num_classes, num_actions]`. Entry `[i, j]` is the reward for taking
         action `j` for an instance of class `i`.
 
