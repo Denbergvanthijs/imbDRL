@@ -7,7 +7,7 @@ from tf_agents.trajectories import time_step as ts
 def metrics_by_network(network, X: np.ndarray, y: np.ndarray) -> dict:
     """Computes metrics using a given network.
     Input is X and y data. X will be used to make y_pred.
-    y_pred and y will be compared using `imbdrl.metrics.classification_metrics()`.
+    y_pred and y will be compared using `imbDRL.metrics.classification_metrics()`.
 
     :param network: The network to use to calculate metrics
     :type  network: (Q)Network
@@ -35,7 +35,7 @@ def metrics_by_network(network, X: np.ndarray, y: np.ndarray) -> dict:
 def metrics_by_policy(policy, X: list, y: list) -> dict:
     """Computes metrics using a given policy.
     Input is X and y data. X will be used to make y_pred.
-    y_pred and y will be compared using `imbdrl.metrics.classification_metrics()`.
+    y_pred and y will be compared using `imbDRL.metrics.classification_metrics()`.
 
     :param policy: The policy to use to calculate metrics
     :type  policy: policy

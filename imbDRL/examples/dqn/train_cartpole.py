@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from imbdrl.train.dqn import TrainCartPole
+from imbDRL.train.dqn import TrainCartPole
 from tf_agents.environments import suite_gym
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
 
