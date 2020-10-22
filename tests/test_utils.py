@@ -1,5 +1,6 @@
-import pytest
 import imbDRL.utils as utils
+import numpy as np
+import pytest
 
 
 def test_plot_confusion_matrix():
@@ -31,4 +32,23 @@ def test_split_csv(tmp_path):
 
     with pytest.raises(ValueError) as exc:
         utils.split_csv(fp=data_file, fp_dest=tmp_path, test_size=1)
+    assert "is not in interval" in str(exc.value)
+
+
+def test_get_reward_distribution():
+    """Tests imbDRL.utils.get_reward_distribution."""
+    distr = utils.get_reward_distribution(0.2).sample(1)
+    expected = np.array([[[0.2, -0.2], [-1, 1]]], dtype=np.float32)
+    assert np.array_equal(distr.numpy(), expected)
+
+    with pytest.raises(ValueError) as exc:
+        utils.get_reward_distribution(0).sample(1)
+    assert "is not in interval" in str(exc.value)
+
+    with pytest.raises(ValueError) as exc:
+        utils.get_reward_distribution(0.0).sample(1)
+    assert "is not in interval" in str(exc.value)
+
+    with pytest.raises(ValueError) as exc:
+        utils.get_reward_distribution(1).sample(1)
     assert "is not in interval" in str(exc.value)
