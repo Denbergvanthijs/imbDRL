@@ -64,7 +64,7 @@ class TrainBandit(ABC):
                                               optimizer=Adam(learning_rate=self.lr),
                                               epsilon=self.epsilon_decay,
                                               train_step_counter=self.global_episode,
-                                              error_loss_fn=tf.compat.v1.losses.sigmoid_cross_entropy)
+                                              error_loss_fn=tf.compat.v1.losses.mean_squared_error)
 
         self.replay_buffer = TFUniformReplayBuffer(self.agent.policy.trajectory_spec,
                                                    self.train_env.batch_size,
