@@ -1,9 +1,9 @@
 from datetime import datetime
 
 import tensorflow as tf
-import tensorflow_probability as tfp
 from imbDRL.data import get_train_test_val, load_image
 from imbDRL.train.bandit import TrainCustomBandit
+from imbDRL.utils import get_reward_distribution
 from tf_agents.bandits.environments.classification_environment import \
     ClassificationBanditEnvironment
 
@@ -28,14 +28,9 @@ maj_class = [0, 1, 3, 4, 5, 6, 7, 8, 9]  # Majority classes
 X_train, y_train, X_test, y_test, = load_image("mnist")
 X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test, imb_rate, min_class, maj_class)
 
-bernoulli = tfp.distributions.Bernoulli(probs=[[imb_rate, -imb_rate], [-1, 1]], dtype=tf.float32)
-reward_distr = (tfp.bijectors.Shift([[imb_rate, -imb_rate], [-1, 1]])
-                (tfp.bijectors.Scale([[1, 1], [1, 1]])
-                 (bernoulli)))
-distr = tfp.distributions.Independent(reward_distr, reinterpreted_batch_ndims=2)
-
+reward_distr = get_reward_distribution(imb_rate)
 train_ds = tf.data.Dataset.from_tensor_slices((X_train, y_train))
-train_env = ClassificationBanditEnvironment(train_ds, distr, batch_size)
+train_env = ClassificationBanditEnvironment(train_ds, reward_distr, batch_size)
 
 model = TrainCustomBandit(training_loops, lr, min_epsilon, decay_steps, model_dir,
                           log_dir, batch_size=batch_size, steps_per_loop=steps_per_loop)
