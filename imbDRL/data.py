@@ -181,17 +181,17 @@ def imbalance_data(X: np.ndarray, y: np.ndarray, imb_rate: float, min_class: lis
     Note: Data will not be shuffled
     """
     if not isinstance(X, np.ndarray):
-        raise ValueError(f"`X` must be of type `np.ndarray` not {type(X)}")
+        raise TypeError(f"`X` must be of type `np.ndarray` not {type(X)}")
     if not isinstance(y, np.ndarray):
-        raise ValueError(f"`y` must be of type `np.ndarray` not {type(y)}")
+        raise TypeError(f"`y` must be of type `np.ndarray` not {type(y)}")
     if X.shape[0] != y.shape[0]:
         raise ValueError("`X` and `y` must contain the same amount of rows.")
     if not 0 < imb_rate < 1:
         raise ValueError(f"{imb_rate} is not in interval 0 < x < 1.")
     if not isinstance(min_class, (list, tuple)):
-        raise ValueError("`min_class` must be of type list or tuple.")
+        raise TypeError("`min_class` must be of type list or tuple.")
     if not isinstance(maj_class, (list, tuple)):
-        raise ValueError("`maj_class` must be of type list or tuple.")
+        raise TypeError("`maj_class` must be of type list or tuple.")
 
     X_min, X_maj = [], []
     for i, value in enumerate(y):
