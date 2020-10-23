@@ -1,6 +1,6 @@
 # imbDRL
 
-Deep Q Network, improved.
+Imbalanced Classification with Deep Reinforcement Learning.
 
 This repository contains an implementation of binary classification on unbalanced datasets using [TensorFlow 2.3](https://www.tensorflow.org/) and [TF Agents](https://www.tensorflow.org/agents).
 
