@@ -57,16 +57,16 @@ class ClassifyEnv(PyEnvironment):
 
         if action == env_action:  # Correct action
             if env_action:  # Minority
-                reward = 1
+                reward = 1  # True Positive
             else:  # Majority
-                reward = self.imb_rate
+                reward = self.imb_rate  # True Negative
 
         else:  # Incorrect action
             if env_action:  # Minority
-                reward = -1
+                reward = -1  # False Negative
                 self._episode_ended = True  # Stop episode when minority class is misclassified
             else:  # Majority
-                reward = -self.imb_rate
+                reward = -self.imb_rate  # False Positive
 
         if self.episode_step == self.X_len - 1:  # If last step in data
             self._episode_ended = True

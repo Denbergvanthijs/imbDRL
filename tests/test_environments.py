@@ -42,8 +42,11 @@ def test_step():
     time_step = env.step([0])  # False Negative
     assert time_step.reward == -1
 
+    time_step = env.step([1])
+    assert time_step.step_type == 0  # Reset since last step was False Negative
+
     X = np.arange(10, dtype=np.float32)
-    y = np.zeros(10, dtype=np.int32)
+    y = np.zeros(10, dtype=np.int32)  # All labels are negative
 
     env = ClassifyEnv(X, y, 0.2)
     env.reset()
@@ -51,3 +54,8 @@ def test_step():
     assert time_step.reward == np.array([0.2], dtype=np.float32)
     time_step = env.step([1])  # False Positive
     assert time_step.reward == np.array([-0.2], dtype=np.float32)
+
+    env.reset()
+    for _ in range(X.size):
+        time_step = env.step([0])  # Take random step
+    assert time_step.step_type == 0  # Reset since last step end of dataset
