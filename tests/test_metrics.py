@@ -1,6 +1,3 @@
-from tf_agents.policies.random_tf_policy import RandomTFPolicy
-from imbDRL.environments import ClassifyEnv
-from tf_agents.environments.tf_py_environment import TFPyEnvironment
 import imbDRL.metrics as metrics
 import numpy as np
 import pytest
