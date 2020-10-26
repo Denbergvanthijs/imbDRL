@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 import tensorflow as tf
-from imbDRL.metrics import metrics_by_network
+from imbDRL.metrics import classification_metrics, network_predictions
 from tensorflow.keras.optimizers import Adam
 from tf_agents.bandits.agents.examples.v2.trainer import get_training_loop_fn
 from tf_agents.bandits.agents.neural_epsilon_greedy_agent import \
@@ -18,7 +18,7 @@ from tqdm import tqdm
 class TrainBandit(ABC):
     """Wrapper for DDQN training, validation, saving etc."""
 
-    def __init__(self, episodes: int, lr: float, min_epsilon: float, decay_episodes: int, model_dir: str, log_dir: str,
+    def __init__(self, episodes: int, lr: float, min_epsilon: float, decay_episodes: int, model_dir: str = None, log_dir: str = None,
                  batch_size: int = 64, steps_per_loop: int = 64, log_every: int = 10, val_every: int = 20):
         """
         Wrapper to make training easier.
@@ -35,8 +35,17 @@ class TrainBandit(ABC):
         self.min_epsilon = min_epsilon  # Minimal chance of choosing random action
         self.decay_episodes = decay_episodes  # Number of episodes to decay from 1.0 to `EPSILON`
 
-        self.model_dir = model_dir
-        self.log_dir = log_dir
+        NOW = datetime.now().strftime('%Y%m%d_%H%M%S')
+        if model_dir is None:
+            self.model_dir = "./models/" + NOW
+        else:
+            self.model_dir = model_dir
+
+        if log_dir is None:
+            self.log_dir = "./logs" + NOW
+        else:
+            self.log_dir = log_dir
+
         self.writer = tf.summary.create_file_writer(self.log_dir)
         self.global_episode = tf.Variable(0, name="global_episode", dtype=np.int64, trainable=False)  # Global train episode counter
 
@@ -118,7 +127,8 @@ class TrainCustomBandit(TrainBandit):
 
     def collect_metrics(self, X_val, y_val):
         """Collects metrics using the trained Q-network."""
-        stats = metrics_by_network(self.agent._reward_network, X_val, y_val)
+        y_pred = network_predictions(self.agent._reward_network, X_val)
+        stats = classification_metrics(y_val, y_pred)
 
         with self.writer.as_default():
             for k, v in stats.items():
@@ -126,7 +136,8 @@ class TrainCustomBandit(TrainBandit):
 
     def evaluate(self, X_test, y_test):
         """Final evaluation of trained Q-network with X_test and y_test."""
-        return metrics_by_network(self.agent._reward_network, X_test, y_test)
+        y_pred = network_predictions(self.agent._reward_network, X_test)
+        return classification_metrics(y_test, y_pred)
 
     def save_model(self):
         """Saves Q-network as pickle to `model_dir`."""
