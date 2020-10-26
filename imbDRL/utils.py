@@ -8,7 +8,7 @@ import tensorflow_probability as tfp
 from sklearn.model_selection import train_test_split
 
 
-def plot_confusion_matrix(TP: int, FN: int, FP: int, TN: int) -> None:
+def plot_confusion_matrix(TP: int, FN: int, FP: int, TN: int) -> None:  # pragma: no cover
     """Plots confusion matric of given TP, FN, FP, TN.
 
     :param TP: True Positive

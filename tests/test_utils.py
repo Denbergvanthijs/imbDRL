@@ -1,3 +1,5 @@
+import os
+
 import imbDRL.utils as utils
 import numpy as np
 import pytest
@@ -12,15 +14,16 @@ def test_plot_confusion_matrix():
 
 def test_split_csv(tmp_path):
     """Tests imbDRL.utils.split_csv."""
-    cols = "Time,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12,V13,V14,V15,V16,V17,V18,V19,V20,V21,V22,V23,V24,V25,V26,V27,V28,Amount,Class\n"
-    row = str(list(range(31))).strip("[]") + "\n"
+    cols = "V1,V2,Class\n"
+    row0 = "0,0,0\n"
+    row1 = "1,1,1\n"
 
     with pytest.raises(FileNotFoundError) as exc:
         utils.split_csv(fp=tmp_path / "thisfiledoesnotexist.csv", fp_dest=tmp_path)
     assert "File at" in str(exc.value)
 
     with open(data_file := tmp_path / "data_file.csv", "w") as f:
-        f.writelines([cols, row, row])
+        f.writelines([cols, row0, row0, row1, row1])
 
     with pytest.raises(ValueError) as exc:
         utils.split_csv(fp=data_file, fp_dest=tmp_path / "thisfolderdoesnotexist")
@@ -33,6 +36,14 @@ def test_split_csv(tmp_path):
     with pytest.raises(ValueError) as exc:
         utils.split_csv(fp=data_file, fp_dest=tmp_path, test_size=1)
     assert "is not in interval" in str(exc.value)
+
+    with pytest.raises(ValueError) as exc:
+        utils.split_csv(fp=data_file, fp_dest=tmp_path, strat_col="ThisColDoesNotExist")
+    assert "not found in DataFrame" in str(exc.value)
+
+    utils.split_csv(fp=data_file, fp_dest=tmp_path, test_size=0.5)
+    assert os.path.isfile(tmp_path / "credit0.csv")
+    assert os.path.isfile(tmp_path / "credit1.csv")
 
 
 def test_get_reward_distribution():
