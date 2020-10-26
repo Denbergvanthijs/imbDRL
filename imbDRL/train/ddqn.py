@@ -20,10 +20,44 @@ class TrainDDQN(ABC):
     def __init__(self, episodes: int, warmup_episodes: int, lr: float, gamma: float, min_epsilon: float, decay_episodes: int,
                  model_dir: str = None, log_dir: str = None, batch_size: int = 64, memory_length: int = 100_000,
                  collect_steps_per_episode: int = 1, log_every: int = 200, val_every: int = 1_000,
-                 target_model_update: int = 1, target_update_tau: float = 1.0):
+                 target_model_update: int = 1, target_update_tau: float = 1.0) -> None:
         """
         Wrapper to make training easier.
         Code is partly based of https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
+
+        :param episodes: Number of training episodes
+        :type  episodes: int
+        :param warmup_episodes: Number of episodes to fill Replay Buffer with random state-action pairs before training starts
+        :type  warmup_episodes: int
+        :param lr: Learning Rate for the Adam Optimizer
+        :type  lr: float
+        :param gamma: Discount factor for the Q-values
+        :type  gamma: float
+        :param min_epsilon: Lowest and final value for epsilon
+        :type  min_epsilon: float
+        :param decay_episodes: Amount of episodes to decay from 1 to `min_epsilon`
+        :type  decay_episodes: int
+        :param model_dir: Location to save the trained models
+        :type  model_dir: str
+        :param log_dir: Location to save the logs, usefull for TensorBoard
+        :type  log_dir: str
+        :param batch_size: Number of samples in minibatch to train on each step
+        :type  batch_size: int
+        :param memory_length: Maximum size of the Replay Buffer
+        :type  memory_length: int
+        :param collect_steps_per_episode: Amount of data to collect for Replay Buffer each episiode
+        :type  collect_steps_per_episode: int
+        :param log_every: Save the training loss every X episodes
+        :type  log_every: int
+        :param val_every: Validate the model every X episodes using the `collect_metrics()` function
+        :type  val_every: int
+        :param target_model_update: Update the target Q-network every X episodes
+        :type  target_model_update: int
+        :param target_update_tau: Parameter for softening the `target_model_update`
+        :type  target_update_tau: float
+
+        :return: None
+        :rtype: NoneType
         """
         self.episodes = episodes  # Total episodes
         self.warmup_episodes = warmup_episodes  # Amount of warmup steps before training
@@ -61,8 +95,26 @@ class TrainDDQN(ABC):
         self.optimizer = Adam(learning_rate=self.lr)
         self.compiled = False
 
-    def compile_model(self, train_env, conv_layers, dense_layers, dropout_layers, loss_fn=common.element_wise_squared_loss):
-        """Initializes the Q-network, agent, collect policy and replay buffer."""
+    def compile_model(self, train_env, conv_layers: tuple, dense_layers: tuple, dropout_layers: tuple,
+                      loss_fn=common.element_wise_squared_loss) -> None:
+        """Initializes the Q-network, agent, collect policy and replay buffer.
+
+        :param train_env: The training environment used by the agent
+        :type  train_env: tf_agents.environments.tf_py_environment.TFPyEnvironment
+        :param conv_layers: Tuple of architecture of the convolutional layers.
+            From tf_agents.networks.q_network:
+                (...) where each item is a length-three tuple indicating (filters, kernel_size, stride).
+        :type  conv_layers: tuple
+        :param dense_layers: Tuple of dense layer architecture. Each number in the tuple is the number of neurons of that layer.
+        :type  dense_layers: tuple
+        :param dropout_layers: Tuple of percentage of dropout per each dense layer
+        :type  dropout_layers: tuple
+        :param loss_fn: Callable loss function
+        :type  loss_fn: tf.compat.v1.losses
+
+        :return: None
+        :rtype: NoneType
+        """
         for layer in (conv_layers, dense_layers, dropout_layers):
             if not isinstance(layer, (tuple, list, type(None))):
                 raise TypeError(f"Layer {layer=} must be tuple or None, not {type(layer)}.")
@@ -97,8 +149,16 @@ class TrainDDQN(ABC):
                                                    max_length=self.memory_length)
         self.compiled = True
 
-    def train(self, *args):
-        """Starts the training of the model. Includes warmup period, metrics collection and model saving."""
+    def train(self, *args) -> None:
+        """Starts the training of the model. Includes warmup period, metrics collection and model saving.
+
+        :param *args: All arguments will be passed to `collect_metrics()`.
+            This can be usefull to pass callables, testing environments or validation data.
+        :type  *args: Any
+
+        :return: None
+        :rtype: NoneType, last step is saving the model as a side-effect
+        """
         assert self.compiled, "Model must be compiled with model.compile_model() before training."
 
         # Warmup period, fill memory with random actions
@@ -133,7 +193,7 @@ class TrainDDQN(ABC):
 
     @abstractmethod
     def evaluate(self):
-        """Evaluation function to run after training with seperate train-dataset."""
+        """Evaluation function to run after training with seperate test-dataset."""
         raise NotImplementedError
 
     @abstractmethod
