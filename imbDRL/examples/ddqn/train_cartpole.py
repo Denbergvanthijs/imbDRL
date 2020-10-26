@@ -1,6 +1,4 @@
-from datetime import datetime
-
-from imbDRL.train.dqn import TrainCartPole
+from imbDRL.examples.ddqn.example_classes import TrainCartPole
 from tf_agents.environments import suite_gym
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
 
@@ -17,14 +15,11 @@ gamma = 0.99  # Discount factor
 min_epsilon = 0.1  # Minimal and final chance of choosing random action
 decay_episodes = 100  # Number of episodes to decay from 1.0 to `min_epsilon`
 
-model_dir = "./models/" + (NOW := datetime.now().strftime('%Y%m%d_%H%M%S'))  # Location to save the Q-network as a pickle
-log_dir = "./logs/" + NOW  # Location to save the logs needed for tensorboard
-
 # Change OpenAI Gym environment to Python environment to TF environment
 train_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))
 val_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))
 
-model = TrainCartPole(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes, model_dir, log_dir)
-model.compile_model(train_env, val_env, conv_layers, dense_layers, dropout_layers)
-model.train()
-model.evaluate()  # TODO: add video as evaluation
+model = TrainCartPole(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes)
+model.compile_model(train_env, conv_layers, dense_layers, dropout_layers)
+model.train(val_env, 10)  # Validate for 10 episodes each time
+model.evaluate(val_env, 10)  # TODO: add video as evaluation
