@@ -1,14 +1,12 @@
-import pickle
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 import numpy as np
 import tensorflow as tf
 from imbDRL.data import collect_data
-from imbDRL.metrics import metrics_by_network
 from tensorflow.keras.optimizers import Adam
 from tf_agents.agents.dqn.dqn_agent import DdqnAgent
 from tf_agents.networks.q_network import QNetwork
-from tf_agents.policies.policy_saver import PolicySaver
 from tf_agents.policies.random_tf_policy import RandomTFPolicy
 from tf_agents.replay_buffers.tf_uniform_replay_buffer import \
     TFUniformReplayBuffer
@@ -20,9 +18,9 @@ class TrainDDQN(ABC):
     """Wrapper for DDQN training, validation, saving etc."""
 
     def __init__(self, episodes: int, warmup_episodes: int, lr: float, gamma: float, min_epsilon: float, decay_episodes: int,
-                 model_dir: str, log_dir: str, batch_size: int = 64, memory_length: int = 100_000, collect_steps_per_episode: int = 1,
-                 log_every: int = 200, val_every: int = 1_000, val_episodes: int = 10, target_model_update: int = 1,
-                 target_update_tau: float = 1.0):
+                 model_dir: str = None, log_dir: str = None, batch_size: int = 64, memory_length: int = 100_000,
+                 collect_steps_per_episode: int = 1, log_every: int = 200, val_every: int = 1_000,
+                 target_model_update: int = 1, target_update_tau: float = 1.0):
         """
         Wrapper to make training easier.
         Code is partly based of https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
@@ -35,7 +33,6 @@ class TrainDDQN(ABC):
 
         self.log_every = log_every  # Print step and loss every `LOG_EVERY` episodes
         self.val_every = val_every  # Validate the policy every `VAL_EVERY` episodes
-        self.val_episodes = val_episodes  # Number of episodes to use to calculate metrics during training
 
         self.lr = lr  # Learning Rate
         self.gamma = gamma  # Discount factor
@@ -44,8 +41,17 @@ class TrainDDQN(ABC):
         self.target_model_update = target_model_update  # Period for soft updates
         self.target_update_tau = target_update_tau
 
-        self.model_dir = model_dir
-        self.log_dir = log_dir
+        NOW = datetime.now().strftime('%Y%m%d_%H%M%S')
+        if model_dir is None:
+            self.model_dir = "./models/" + NOW
+        else:
+            self.model_dir = model_dir
+
+        if log_dir is None:
+            self.log_dir = "./logs/" + NOW
+        else:
+            self.log_dir = log_dir
+
         self.writer = tf.summary.create_file_writer(self.log_dir)
         self.global_episode = tf.Variable(0, name="global_episode", dtype=np.int64, trainable=False)  # Global train episode counter
 
@@ -53,14 +59,19 @@ class TrainDDQN(ABC):
         self.epsilon_decay = tf.compat.v1.train.polynomial_decay(
             1.0, self.global_episode, self.decay_episodes, end_learning_rate=self.min_epsilon)
         self.optimizer = Adam(learning_rate=self.lr)
+        self.compiled = False
 
-    def compile_model(self, train_env, val_env, conv_layers, dense_layers, dropout_layers):
+    def compile_model(self, train_env, conv_layers, dense_layers, dropout_layers, loss_fn=common.element_wise_squared_loss):
         """Initializes the Q-network, agent, collect policy and replay buffer."""
+        for layer in (conv_layers, dense_layers, dropout_layers):
+            if not isinstance(layer, (tuple, list, type(None))):
+                raise TypeError(f"Layer {layer=} must be tuple or None, not {type(layer)}.")
+
         self.train_env = train_env
-        self.val_env = val_env
         self.conv_layers = conv_layers
         self.dense_layers = dense_layers
         self.dropout_layers = dropout_layers
+        self.loss_fn = loss_fn
 
         self.q_net = QNetwork(self.train_env.observation_spec(),
                               self.train_env.action_spec(),
@@ -72,7 +83,7 @@ class TrainDDQN(ABC):
                                self.train_env.action_spec(),
                                q_network=self.q_net,
                                optimizer=self.optimizer,
-                               td_errors_loss_fn=common.element_wise_squared_loss,
+                               td_errors_loss_fn=loss_fn,
                                train_step_counter=self.global_episode,
                                target_update_period=self.target_model_update,
                                target_update_tau=self.target_update_tau,
@@ -84,12 +95,15 @@ class TrainDDQN(ABC):
         self.replay_buffer = TFUniformReplayBuffer(data_spec=self.agent.collect_data_spec,
                                                    batch_size=self.train_env.batch_size,
                                                    max_length=self.memory_length)
+        self.compiled = True
 
     def train(self, *args):
         """Starts the training of the model. Includes warmup period, metrics collection and model saving."""
+        assert self.compiled, "Model must be compiled with model.compile_model() before training."
+
         # Warmup period, fill memory with random actions
         collect_data(self.train_env, self.random_policy, self.replay_buffer, self.warmup_episodes, logging=True)
-        self.dataset = self.replay_buffer.as_dataset(num_parallel_calls=3, sample_batch_size=self.batch_size, num_steps=2).prefetch(3)
+        self.dataset = self.replay_buffer.as_dataset(sample_batch_size=self.batch_size, num_steps=2).prefetch(3)
         self.iterator = iter(self.dataset)
         self.agent.train = common.function(self.agent.train)  # Optimalization
 
@@ -115,82 +129,20 @@ class TrainDDQN(ABC):
     @abstractmethod
     def save_model(self):
         """Abstract method for saving the model/network/policy to disk."""
-        pass
+        raise NotImplementedError
 
+    @staticmethod
     @abstractmethod
     def load_model(fp: str):
         """Abstract method for loading the model/network/policy of disk."""
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def collect_metrics(self):
         """*args given in train() will be passed to this function."""
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def evaluate(self):
         """Evaluation function to run after training with seperate train-dataset."""
-        pass
-
-
-class TrainCustomDDQN(TrainDDQN):
-    """Class for the custom training environment."""
-
-    def collect_metrics(self, X_val, y_val):
-        """Collects metrics using the trained Q-network."""
-        stats = metrics_by_network(self.agent._target_q_network, X_val, y_val)
-
-        with self.writer.as_default():
-            for k, v in stats.items():
-                tf.summary.scalar(k, v, step=self.global_episode)
-
-    def evaluate(self, X_test, y_test):
-        """Final evaluation of trained Q-network with X_test and y_test."""
-        return metrics_by_network(self.agent._target_q_network, X_test, y_test)
-
-    def save_model(self):
-        """Saves Q-network as pickle to `model_dir`."""
-        with open(self.model_dir + ".pkl", "wb") as f:  # Save Q-network as pickle
-            pickle.dump(self.agent._target_q_network, f)
-
-    @staticmethod
-    def load_model(fp: str):
-        """Static method to load Q-network pickle from given filepath."""
-        with open(fp + ".pkl", "rb") as f:  # Load the Q-network
-            network = pickle.load(f)
-        return network
-
-
-class TrainCartPole(TrainDDQN):
-    """Class for the CartPole environment."""
-
-    def collect_metrics(self):
-        """Calculates the average return for `val_episodes` using the trained policy."""
-        total_return = 0.0
-        for _ in range(self.val_episodes):
-            time_step = self.val_env.reset()
-            episode_return = 0.0
-
-            while not time_step.is_last():
-                action_step = self.agent.policy.action(time_step)
-                time_step = self.val_env.step(action_step.action)
-                episode_return += time_step.reward
-            total_return += episode_return
-
-        avg_return = total_return // self.val_episodes
-        with self.writer.as_default():
-            tf.summary.scalar("avg_return", avg_return.numpy()[0], step=self.global_episode)
-
-    def evaluate(self):
-        """Final evaluation of policy."""
-        return self.collect_metrics()
-
-    def save_model(self):
-        """Saves the policy to `model_dir`."""
-        saver = PolicySaver(self.agent.policy)
-        saver.save(self.model_dir)
-
-    @staticmethod
-    def load_model(fp: str):
-        """Loads a saved policy from given filepath."""
-        return tf.saved_model.load(fp)
+        raise NotImplementedError
