@@ -1,5 +1,7 @@
 # imbDRL
 
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Denbergvanthijs/imbDRL/Build) ![License](https://img.shields.io/github/license/Denbergvanthijs/imbDRL)
+
 Imbalanced Classification with Deep Reinforcement Learning.
 
 This repository contains an implementation of binary classification on unbalanced datasets using [TensorFlow 2.3](https://www.tensorflow.org/) and [TF Agents](https://www.tensorflow.org/agents).
