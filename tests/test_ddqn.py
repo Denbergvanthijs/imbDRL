@@ -10,16 +10,20 @@ class TrainDDQNChild(TrainDDQN):
     """Child class of imbDRL.train.ddqn.TrainDDQN to overwrite abstract methods."""
 
     def save_model(self):
+        """Dummy implementation of abstract method for testing."""
         pass
 
     @staticmethod
     def load_model(fp: str):
+        """Dummy implementation of abstract method for testing."""
         pass
 
     def collect_metrics(self):
+        """Dummy implementation of abstract method for testing."""
         pass
 
     def evaluate(self):
+        """Dummy implementation of abstract method for testing."""
         pass
 
 
@@ -33,7 +37,7 @@ def test_TrainDDQN(tmp_path):
     assert model.epsilon_decay() == 1.0
     assert model.model_dir == tmp_models
     assert model.log_dir == tmp_logs
-    assert model.compiled == False
+    assert not model.compiled
 
     NOW = datetime.now().strftime('%Y%m%d')  # yyyymmdd
     model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5)
@@ -62,9 +66,9 @@ def test_compile_model(tmp_path):
     assert "must be tuple or None" in str(exc.value)
 
     model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5, model_dir=tmp_models, log_dir=tmp_logs)
-    assert model.compiled == False
+    assert not model.compiled
     model.compile_model(train_env, None, (128,), None)
-    assert model.compiled == True
+    assert model.compiled
 
 
 def test_train(tmp_path):
