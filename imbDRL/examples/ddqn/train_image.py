@@ -29,8 +29,7 @@ X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_t
 train_env = TFPyEnvironment(ClassifyEnv(X_train, y_train, imb_rate))
 
 model = TrainCustomDDQN(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes, target_update_tau=target_update_tau,
-                        collect_steps_per_episode=collect_steps_per_episode, target_model_update=target_model_update,)
-
+                        collect_steps_per_episode=collect_steps_per_episode, target_model_update=target_model_update)
 
 model.compile_model(train_env, conv_layers, dense_layers, dropout_layers)
 model.train(X_val, y_val)
