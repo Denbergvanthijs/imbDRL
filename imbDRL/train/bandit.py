@@ -1,10 +1,8 @@
-import pickle
 from abc import ABC, abstractmethod
 from datetime import datetime
 
 import numpy as np
 import tensorflow as tf
-from imbDRL.metrics import classification_metrics, network_predictions
 from tensorflow.keras.optimizers import Adam
 from tf_agents.bandits.agents.examples.v2.trainer import get_training_loop_fn
 from tf_agents.bandits.agents.neural_epsilon_greedy_agent import \
@@ -23,7 +21,7 @@ class TrainBandit(ABC):
                  batch_size: int = 64, steps_per_loop: int = 64, log_every: int = 10, val_every: int = 20):
         """
         Wrapper to make training easier.
-        Code is partly based of https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
+        Code is partly based of https://www.tensorflow.org/agents/tutorials/bandits_tutorial
         """
         self.episodes = episodes  # Total episodes
         self.batch_size = batch_size  # Batch size of Replay Memory
@@ -43,7 +41,7 @@ class TrainBandit(ABC):
             self.model_dir = model_dir
 
         if log_dir is None:
-            self.log_dir = "./logs" + NOW
+            self.log_dir = "./logs/" + NOW
         else:
             self.log_dir = log_dir
 
@@ -54,13 +52,19 @@ class TrainBandit(ABC):
         self.epsilon_decay = tf.compat.v1.train.polynomial_decay(
             1.0, self.global_episode, self.decay_episodes, end_learning_rate=self.min_epsilon)
         self.optimizer = Adam(learning_rate=self.lr)
+        self.compiled = False
 
-    def compile_model(self, train_env, conv_layers, dense_layers, dropout_layers):
+    def compile_model(self, train_env, conv_layers, dense_layers, dropout_layers, loss_fn=tf.compat.v1.losses.mean_squared_error):
         """Initializes the Q-network, agent, collect policy and replay buffer."""
+        for layer in (conv_layers, dense_layers, dropout_layers):
+            if not isinstance(layer, (tuple, list, type(None))):
+                raise TypeError(f"Layer {layer=} must be tuple or None, not {type(layer)}.")
+
         self.train_env = train_env
         self.conv_layers = conv_layers
         self.dense_layers = dense_layers
         self.dropout_layers = dropout_layers
+        self.loss_fn = loss_fn
 
         self.q_net = QNetwork(self.train_env.observation_spec(),
                               self.train_env.action_spec(),
@@ -74,7 +78,7 @@ class TrainBandit(ABC):
                                               optimizer=Adam(learning_rate=self.lr),
                                               epsilon=self.epsilon_decay,
                                               train_step_counter=self.global_episode,
-                                              error_loss_fn=tf.compat.v1.losses.mean_squared_error)
+                                              error_loss_fn=loss_fn)
 
         self.replay_buffer = TFUniformReplayBuffer(self.agent.policy.trajectory_spec,
                                                    self.train_env.batch_size,
@@ -86,9 +90,12 @@ class TrainBandit(ABC):
                                         observers=[self.replay_buffer.add_batch])
 
         self.training_loop = get_training_loop_fn(self.driver, self.replay_buffer, self.agent, self.steps_per_loop)
+        self.compiled = True
 
     def train(self, *args):
         """Starts the training of the model. Includes warmup period, metrics collection and model saving."""
+        assert self.compiled, "Model must be compiled with model.compile_model() before training."
+
         self.collect_metrics(*args)  # Initial collection for step 0
         for _ in tqdm(range(self.episodes)):
             loss_info = self.training_loop()
@@ -103,51 +110,22 @@ class TrainBandit(ABC):
         self.save_model()
 
     @abstractmethod
-    def save_model(self):
-        """Abstract method for saving the model/network/policy to disk."""
-        pass
-
-    @abstractmethod
-    def load_model(fp: str):
-        """Abstract method for loading the model/network/policy of disk."""
-        pass
-
-    @abstractmethod
     def collect_metrics(self):
         """*args given in train() will be passed to this function."""
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def evaluate(self):
         """Evaluation function to run after training with seperate train-dataset."""
-        pass
+        raise NotImplementedError
 
-
-class TrainCustomBandit(TrainBandit):
-    """Class for the bandit training environment."""
-
-    def collect_metrics(self, X_val, y_val):
-        """Collects metrics using the trained Q-network."""
-        y_pred = network_predictions(self.agent._reward_network, X_val)
-        stats = classification_metrics(y_val, y_pred)
-
-        with self.writer.as_default():
-            for k, v in stats.items():
-                tf.summary.scalar(k, v, step=self.global_episode)
-
-    def evaluate(self, X_test, y_test):
-        """Final evaluation of trained Q-network with X_test and y_test."""
-        y_pred = network_predictions(self.agent._reward_network, X_test)
-        return classification_metrics(y_test, y_pred)
-
+    @abstractmethod
     def save_model(self):
-        """Saves Q-network as pickle to `model_dir`."""
-        with open(self.model_dir + ".pkl", "wb") as f:  # Save Q-network as pickle
-            pickle.dump(self.agent._reward_network, f)
+        """Abstract method for saving the model/network/policy to disk."""
+        raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def load_model(fp: str):
-        """Static method to load Q-network pickle from given filepath."""
-        with open(fp + ".pkl", "rb") as f:  # Load the Q-network
-            network = pickle.load(f)
-        return network
+        """Abstract method for loading the model/network/policy of disk."""
+        raise NotImplementedError
