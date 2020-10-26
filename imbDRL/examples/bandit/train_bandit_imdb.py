@@ -23,8 +23,8 @@ model_dir = "./models/" + (NOW := datetime.now().strftime("%Y%m%d_%H%M%S"))
 log_dir = "./logs/" + NOW
 
 imb_rate = 0.01  # Imbalance rate
-min_class = [2]  # Minority classes
-maj_class = [0, 1, 3, 4, 5, 6, 7, 8, 9]  # Majority classes
+min_class = [0]  # Minority classes
+maj_class = [1]  # Majority classes
 X_train, y_train, X_test, y_test, = load_imdb()
 X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test, imb_rate, min_class, maj_class)
 
