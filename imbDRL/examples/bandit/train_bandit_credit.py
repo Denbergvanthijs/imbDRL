@@ -20,7 +20,7 @@ min_epsilon = 0.01  # Minimal chance of choosing random action
 decay_steps = 1_000  # Number of episodes to decay from 1.0 to `min_epsilon`
 val_every = training_loops // 50  # Validate 50 times during training
 
-model_dir = "./models/" + (NOW := datetime.now().strftime('%Y%m%d_%H%M%S'))
+model_dir = "./models/" + (NOW := datetime.now().strftime("%Y%m%d_%H%M%S"))
 log_dir = "./logs/" + NOW
 
 imb_rate = 0.00173  # Imbalance rate
@@ -40,6 +40,6 @@ model.compile_model(train_env, conv_layers, dense_layers, dropout_layers)
 model.train(X_val, y_val)
 stats = model.evaluate(X_test, y_test)
 print(*[(k, round(v, 6)) for k, v in stats.items()])
-# ('Gmean', 0.930651) ('Fdot5', 0.557743) ('F1', 0.643939) ('F2', 0.761649) ('TP', 85) ('TN', 56783) ('FP',  81) ('FN', 13)
-# ('Gmean', 0.93917 ) ('Fdot5', 0.227749) ('F1', 0.315789) ('F2', 0.514793) ('TP', 87) ('TN', 56498) ('FP', 366) ('FN', 11)
-# ('Gmean', 0.950929) ('Fdot5', 0.311189) ('F1', 0.412993) ('F2', 0.613793) ('TP', 89) ('TN', 56620) ('FP', 244) ('FN',  9)
+# ("Gmean", 0.930651) ("Fdot5", 0.557743) ("F1", 0.643939) ("F2", 0.761649) ("TP", 85) ("TN", 56783) ("FP",  81) ("FN", 13)
+# ("Gmean", 0.93917 ) ("Fdot5", 0.227749) ("F1", 0.315789) ("F2", 0.514793) ("TP", 87) ("TN", 56498) ("FP", 366) ("FN", 11)
+# ("Gmean", 0.950929) ("Fdot5", 0.311189) ("F1", 0.412993) ("F2", 0.613793) ("TP", 89) ("TN", 56620) ("FP", 244) ("FN",  9)

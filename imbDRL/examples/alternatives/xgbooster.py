@@ -15,4 +15,4 @@ y_pred = model.predict(X_test)
 
 stats = classification_metrics(y_test, y_pred)
 print(*[(k, round(v, 6)) for k, v in stats.items()])
-# ('Gmean', 0.92026 ) ('Fdot5', 0.930493) ('F1', 0.897297) ('F2', 0.866388) ('TP', 83) ('TN', 56860) ('FP', 4) ('FN', 15)
+# ("Gmean", 0.92026 ) ("Fdot5", 0.930493) ("F1", 0.897297) ("F2", 0.866388) ("TP", 83) ("TN", 56860) ("FP", 4) ("FN", 15)

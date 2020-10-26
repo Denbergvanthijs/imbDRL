@@ -41,7 +41,7 @@ class TrainDDQN(ABC):
         self.target_model_update = target_model_update  # Period for soft updates
         self.target_update_tau = target_update_tau
 
-        NOW = datetime.now().strftime('%Y%m%d_%H%M%S')
+        NOW = datetime.now().strftime("%Y%m%d_%H%M%S")
         if model_dir is None:
             self.model_dir = "./models/" + NOW
         else:

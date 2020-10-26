@@ -19,7 +19,7 @@ lr = 0.001  # Learning rate
 min_epsilon = 0  # Minimal and final chance of choosing random action
 decay_steps = 250  # Number of steps to decay from 1.0 to `min_epsilon`
 
-model_dir = "./models/" + (NOW := datetime.now().strftime('%Y%m%d_%H%M%S'))
+model_dir = "./models/" + (NOW := datetime.now().strftime("%Y%m%d_%H%M%S"))
 log_dir = "./logs/" + NOW
 
 imb_rate = 0.01  # Imbalance rate
@@ -39,4 +39,4 @@ model.compile_model(train_env, conv_layers, dense_layers, dropout_layers)
 model.train(X_val, y_val)
 stats = model.evaluate(X_test, y_test)
 print(*[(k, round(v, 6)) for k, v in stats.items()])
-# ('Gmean', 0.991757) ('Fdot5', 0.699523) ('F1', 0.785714) ('F2', 0.89613) ('TP', 88) ('TN', 8921) ('FP', 47) ('FN', 1)
+# ("Gmean", 0.991757) ("Fdot5", 0.699523) ("F1", 0.785714) ("F2", 0.89613) ("TP", 88) ("TN", 8921) ("FP", 47) ("FN", 1)

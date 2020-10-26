@@ -16,8 +16,8 @@ min_epsilon = 0.1  # Minimal and final chance of choosing random action
 decay_episodes = 100  # Number of episodes to decay from 1.0 to `min_epsilon`
 
 # Change OpenAI Gym environment to Python environment to TF environment
-train_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))
-val_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))
+train_env = TFPyEnvironment(suite_gym.load("CartPole-v0"))
+val_env = TFPyEnvironment(suite_gym.load("CartPole-v0"))
 
 model = TrainCartPole(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes)
 model.compile_model(train_env, conv_layers, dense_layers, dropout_layers)

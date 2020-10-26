@@ -39,7 +39,7 @@ def test_TrainDDQN(tmp_path):
     assert model.log_dir == tmp_logs
     assert not model.compiled
 
-    NOW = datetime.now().strftime('%Y%m%d')  # yyyymmdd
+    NOW = datetime.now().strftime("%Y%m%d")  # yyyymmdd
     model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5)
     assert "./models/" + NOW in model.model_dir  # yyyymmdd in yyyymmdd_hhmmss
     assert "./logs/" + NOW in model.log_dir
@@ -51,7 +51,7 @@ def test_compile_model(tmp_path):
     tmp_logs = str(tmp_path / "test_log")
 
     model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5, model_dir=tmp_models, log_dir=tmp_logs)
-    train_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))
+    train_env = TFPyEnvironment(suite_gym.load("CartPole-v0"))
 
     with pytest.raises(TypeError) as exc:
         model.compile_model(train_env, 128, None, None)
@@ -77,7 +77,7 @@ def test_train(tmp_path):
     tmp_logs = str(tmp_path / "test_log")
 
     model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5, model_dir=tmp_models, log_dir=tmp_logs, val_every=2, log_every=2)
-    train_env = TFPyEnvironment(suite_gym.load('CartPole-v0'))
+    train_env = TFPyEnvironment(suite_gym.load("CartPole-v0"))
 
     with pytest.raises(Exception) as exc:
         model.train()

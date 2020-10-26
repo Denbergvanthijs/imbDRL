@@ -12,8 +12,8 @@ class ClassifyEnv(PyEnvironment):
 
     def __init__(self, X_train, y_train, imb_rate):
         """Initialization of environment with X_train and y_train."""
-        self._action_spec = BoundedArraySpec(shape=(), dtype=np.int32, minimum=0, maximum=1, name='action')
-        self._observation_spec = ArraySpec(shape=X_train.shape[1:], dtype=np.float32, name='observation')
+        self._action_spec = BoundedArraySpec(shape=(), dtype=np.int32, minimum=0, maximum=1, name="action")
+        self._observation_spec = ArraySpec(shape=X_train.shape[1:], dtype=np.float32, name="observation")
         self._episode_ended = False
 
         self.X_train = X_train

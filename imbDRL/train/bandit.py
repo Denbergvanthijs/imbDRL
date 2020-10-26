@@ -36,7 +36,7 @@ class TrainBandit(ABC):
         self.min_epsilon = min_epsilon  # Minimal chance of choosing random action
         self.decay_episodes = decay_episodes  # Number of episodes to decay from 1.0 to `EPSILON`
 
-        NOW = datetime.now().strftime('%Y%m%d_%H%M%S')
+        NOW = datetime.now().strftime("%Y%m%d_%H%M%S")
         if model_dir is None:
             self.model_dir = "./models/" + NOW
         else:
