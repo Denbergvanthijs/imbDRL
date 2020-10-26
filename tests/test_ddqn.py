@@ -9,20 +9,20 @@ from tf_agents.environments.tf_py_environment import TFPyEnvironment
 class TrainDDQNChild(TrainDDQN):
     """Child class of imbDRL.train.ddqn.TrainDDQN to overwrite abstract methods."""
 
+    def collect_metrics(self):
+        """Dummy implementation of abstract method for testing."""
+        pass
+
+    def evaluate(self):
+        """Dummy implementation of abstract method for testing."""
+        pass
+
     def save_model(self):
         """Dummy implementation of abstract method for testing."""
         pass
 
     @staticmethod
     def load_model(fp: str):
-        """Dummy implementation of abstract method for testing."""
-        pass
-
-    def collect_metrics(self):
-        """Dummy implementation of abstract method for testing."""
-        pass
-
-    def evaluate(self):
         """Dummy implementation of abstract method for testing."""
         pass
 
@@ -72,7 +72,7 @@ def test_compile_model(tmp_path):
 
 
 def test_train(tmp_path):
-    """Tests imbDRL.train.ddqn.DDQN.train."""
+    """Tests imbDRL.train.ddqn.TrainDDQN.train."""
     tmp_models = str(tmp_path / "test_model")  # No support for pathLib https://github.com/tensorflow/tensorflow/issues/37357
     tmp_logs = str(tmp_path / "test_log")
 

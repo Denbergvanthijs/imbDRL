@@ -127,6 +127,16 @@ class TrainDDQN(ABC):
         self.save_model()
 
     @abstractmethod
+    def collect_metrics(self):
+        """*args given in train() will be passed to this function."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def evaluate(self):
+        """Evaluation function to run after training with seperate train-dataset."""
+        raise NotImplementedError
+
+    @abstractmethod
     def save_model(self):
         """Abstract method for saving the model/network/policy to disk."""
         raise NotImplementedError
@@ -135,14 +145,4 @@ class TrainDDQN(ABC):
     @abstractmethod
     def load_model(fp: str):
         """Abstract method for loading the model/network/policy of disk."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def collect_metrics(self):
-        """*args given in train() will be passed to this function."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def evaluate(self):
-        """Evaluation function to run after training with seperate train-dataset."""
         raise NotImplementedError
