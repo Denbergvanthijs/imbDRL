@@ -21,6 +21,25 @@ def network_predictions(network, X: np.ndarray) -> dict:
     return np.argmax(q.numpy(), axis=1)  # Max action for each x in X
 
 
+def decision_function(network, X: np.ndarray) -> dict:
+    """Computes the score for the predicted class of each x in X using a given network.
+    Input is array of data entries.
+
+    :param network: The network to use to calculate the score per x in X
+    :type  network: (Q)Network
+    :param X: X data, input to network
+    :type  X: np.ndarray
+
+    :return: Numpy array of scores for given X
+    :rtype: np.ndarray
+    """
+    if not isinstance(X, np.ndarray):
+        raise ValueError(f"`X` must be of type `np.ndarray` not {type(X)}")
+
+    q, _ = network(X)
+    return np.max(q.numpy(), axis=1)  # Max action for each x in X
+
+
 def classification_metrics(y_true: list, y_pred: list) -> dict:
     """Computes metrics using y_true and y_pred.
 

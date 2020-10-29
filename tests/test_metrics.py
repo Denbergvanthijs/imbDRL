@@ -17,6 +17,19 @@ def test_network_predictions():
     assert np.array_equal(y_pred, [1, 0, 1, 0])
 
 
+def test_decision_function():
+    """Tests imbDRL.metrics.decision_function."""
+    X = [7, 7, 7, 8, 8, 8]
+
+    with pytest.raises(ValueError) as exc:
+        metrics.decision_function([], X)
+    assert "`X` must be of type" in str(exc.value)
+
+    X = np.array([[1, 2], [2, 1], [3, 4], [4, 3], [-1, 0], [-1, -10]])
+    y_pred = metrics.decision_function(lambda x: (tf.convert_to_tensor(x), None), X)
+    assert np.array_equal(y_pred, [2, 2, 4, 4, 0, -1])
+
+
 def test_classification_metrics():
     """Tests imbDRL.metrics.classification_metrics."""
     y_true = [1, 1, 1, 1, 1, 1]
