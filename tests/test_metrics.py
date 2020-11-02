@@ -2,6 +2,7 @@ import imbDRL.metrics as metrics
 import numpy as np
 import pytest
 import tensorflow as tf
+from imbDRL.utils import rounded_dict
 
 
 def test_network_predictions():
@@ -48,17 +49,17 @@ def test_classification_metrics():
     assert "must be of same length" in str(exc.value)
 
     stats = metrics.classification_metrics(y_true, y_pred)
-    approx = dict([(k, round(v, 6)) for k, v in stats.items()])
+    approx = rounded_dict(stats)
     assert approx == {"Gmean": 0.0, "Fdot5": 0.833333, "F1": 0.666667, "F2": 0.555556, "TP": 3, "TN": 0, "FP": 0, "FN": 3}
 
     y_true = [1, 1, 1, 1, 1, 1]
     y_pred = [0, 0, 0, 0, 0, 0]
     stats = metrics.classification_metrics(y_true, y_pred)
-    approx = dict([(k, round(v, 6)) for k, v in stats.items()])
+    approx = rounded_dict(stats)
     assert approx == {"Gmean": 0.0, "Fdot5": 0.0, "F1": 0.0, "F2": 0.0, "TP": 0, "TN": 0, "FP": 0, "FN": 6}
 
     y_true = [0, 0, 0, 0, 0, 0]
     y_pred = [1, 1, 1, 1, 1, 1]
     stats = metrics.classification_metrics(y_true, y_pred)
-    approx = dict([(k, round(v, 6)) for k, v in stats.items()])
+    approx = rounded_dict(stats)
     assert approx == {"Gmean": 0.0, "Fdot5": 0.0, "F1": 0.0, "F2": 0.0, "TP": 0, "TN": 0, "FP": 6, "FN": 0}

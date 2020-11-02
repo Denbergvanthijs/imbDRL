@@ -100,3 +100,15 @@ def get_reward_distribution(imb_rate: float):
                 (tfp.bijectors.Scale([[1, 1], [1, 1]])
                  (bernoulli)))
     return tfp.distributions.Independent(combined, reinterpreted_batch_ndims=2)
+
+
+def rounded_dict(d: dict, precision: int = 6) -> dict:
+    """Rounds all values in a dictionairy to `precision` digits after the decimal point.
+
+    :param d: Dictionairy containing only floats or ints as values
+    :type  d: dict
+
+    :return: Rounded dictionairy
+    :rtype: dict
+    """
+    return {k: round(v, precision) for k, v in d.items()}

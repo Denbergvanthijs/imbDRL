@@ -1,6 +1,7 @@
 from imbDRL.data import get_train_test_val, load_imdb
 from imbDRL.environments import ClassifyEnv
 from imbDRL.examples.ddqn.example_classes import TrainCustomDDQN
+from imbDRL.utils import rounded_dict
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
 from tf_agents.utils import common
 
@@ -36,5 +37,5 @@ model = TrainCustomDDQN(episodes, warmup_episodes, lr, gamma, min_epsilon, decay
 model.compile_model(train_env, conv_layers, dense_layers, dropout_layers, loss_fn=common.element_wise_huber_loss)
 model.train(X_val, y_val)
 stats = model.evaluate(X_test, y_test)
-print(*[(k, round(v, 6)) for k, v in stats.items()])
+print(rounded_dict(stats))
 # ('Gmean', 0.500371) ('Fdot5', 0.110592) ('F1', 0.15832) ('F2', 0.278524) ('TP', 705) ('TN', 5549) ('FP', 6951) ('FN', 545)

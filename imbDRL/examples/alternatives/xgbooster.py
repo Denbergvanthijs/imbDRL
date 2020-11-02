@@ -1,5 +1,6 @@
 from imbDRL.data import get_train_test_val, load_creditcard
 from imbDRL.metrics import classification_metrics
+from imbDRL.utils import rounded_dict
 from xgboost import XGBClassifier
 
 imb_rate = 0.00173  # Imbalance rate
@@ -14,5 +15,5 @@ model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 
 stats = classification_metrics(y_test, y_pred)
-print(*[(k, round(v, 6)) for k, v in stats.items()])
+print(rounded_dict(stats))
 # ("Gmean", 0.92026 ) ("Fdot5", 0.930493) ("F1", 0.897297) ("F2", 0.866388) ("TP", 83) ("TN", 56860) ("FP", 4) ("FN", 15)

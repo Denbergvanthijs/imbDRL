@@ -2,6 +2,7 @@ from imbDRL.data import get_train_test_val, load_image
 from imbDRL.examples.ddqn.example_classes import TrainCustomDDQN
 from imbDRL.metrics import (classification_metrics, network_predictions,
                             plot_pr_curve)
+from imbDRL.utils import rounded_dict
 
 imb_rate = 0.01  # Imbalance rate
 min_class = [2]  # Minority classes, same setup as in original paper
@@ -16,8 +17,8 @@ y_pred_val = network_predictions(network, X_val)
 y_pred_test = network_predictions(network, X_test)
 
 stats = classification_metrics(y_val, y_pred_val)
-print(*[(k, round(v, 6)) for k, v in stats.items()])
+print(rounded_dict(stats))
 stats = classification_metrics(y_test, y_pred_test)
-print(*[(k, round(v, 6)) for k, v in stats.items()])
+print(rounded_dict(stats))
 
 plot_pr_curve(network, X_test, y_test, X_val, y_val)

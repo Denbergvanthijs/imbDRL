@@ -3,7 +3,7 @@ from datetime import datetime
 import tensorflow as tf
 from imbDRL.data import get_train_test_val, load_creditcard
 from imbDRL.train.bandit import TrainCustomBandit
-from imbDRL.utils import get_reward_distribution
+from imbDRL.utils import get_reward_distribution, rounded_dict
 from tf_agents.bandits.environments.classification_environment import \
     ClassificationBanditEnvironment
 
@@ -39,7 +39,7 @@ model = TrainCustomBandit(training_loops, lr, min_epsilon, decay_steps, model_di
 model.compile_model(train_env, conv_layers, dense_layers, dropout_layers)
 model.train(X_val, y_val)
 stats = model.evaluate(X_test, y_test)
-print(*[(k, round(v, 6)) for k, v in stats.items()])
+print(rounded_dict(stats))
 # ("Gmean", 0.930651) ("Fdot5", 0.557743) ("F1", 0.643939) ("F2", 0.761649) ("TP", 85) ("TN", 56783) ("FP",  81) ("FN", 13)
 # ("Gmean", 0.93917 ) ("Fdot5", 0.227749) ("F1", 0.315789) ("F2", 0.514793) ("TP", 87) ("TN", 56498) ("FP", 366) ("FN", 11)
 # ("Gmean", 0.950929) ("Fdot5", 0.311189) ("F1", 0.412993) ("F2", 0.613793) ("TP", 89) ("TN", 56620) ("FP", 244) ("FN",  9)

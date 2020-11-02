@@ -1,6 +1,7 @@
 from imbDRL.data import get_train_test_val, load_creditcard
 from imbDRL.environments import ClassifyEnv
 from imbDRL.examples.ddqn.example_classes import TrainCustomDDQN
+from imbDRL.utils import rounded_dict
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
 
 episodes = 50_000  # Total number of episodes
@@ -34,5 +35,5 @@ model = TrainCustomDDQN(episodes, warmup_episodes, lr, gamma, min_epsilon, decay
 model.compile_model(train_env, conv_layers, dense_layers, dropout_layers)
 model.train(X_val, y_val)
 stats = model.evaluate(X_test, y_test)
-print(*[(k, round(v, 6)) for k, v in stats.items()])
+print(rounded_dict(stats))
 # ("Gmean", 0.914499) ("Fdot5", 0.756458) ("F1", 0.784689) ("F2", 0.815109) ("TP", 82) ("TN", 56835) ("FP", 29) ("FN", 16)

@@ -63,3 +63,9 @@ def test_get_reward_distribution():
     with pytest.raises(ValueError) as exc:
         utils.get_reward_distribution(1).sample(1)
     assert "is not in interval" in str(exc.value)
+
+
+def test_rounded_dict():
+    """Tests imbDRL.utils.rounded_dict."""
+    d = {"A": 10.123456789, "B": 100}
+    assert utils.rounded_dict(d) == {"A": 10.123457, "B": 100}
