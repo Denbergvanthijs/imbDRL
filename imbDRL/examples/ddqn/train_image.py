@@ -33,6 +33,6 @@ model = TrainCustomDDQN(episodes, warmup_episodes, lr, gamma, min_epsilon, decay
 
 model.compile_model(train_env, conv_layers, dense_layers, dropout_layers)
 model.train(X_val, y_val)
-stats = model.evaluate(X_test, y_test)
+stats = model.evaluate(X_test, y_test, X_val, y_val)
 print(*[(k, round(v, 6)) for k, v in stats.items()])
 # ("Gmean", 0.991757) ("Fdot5", 0.699523) ("F1", 0.785714) ("F2", 0.89613) ("TP", 88) ("TN", 8921) ("FP", 47) ("FN", 1)

@@ -1,11 +1,9 @@
 import pickle
 
-import matplotlib.pyplot as plt
 import tensorflow as tf
-from imbDRL.metrics import (classification_metrics, decision_function,
-                            network_predictions)
+from imbDRL.metrics import (classification_metrics, network_predictions,
+                            plot_pr_curve)
 from imbDRL.train.ddqn import TrainDDQN
-from sklearn.metrics import average_precision_score, precision_recall_curve
 from tf_agents.policies.policy_saver import PolicySaver
 
 
@@ -21,25 +19,16 @@ class TrainCustomDDQN(TrainDDQN):
             for k, v in stats.items():
                 tf.summary.scalar(k, v, step=self.global_episode)
 
-    def evaluate(self, X_test, y_test, plot: bool = False):
-        """Final evaluation of trained Q-network with X_test and y_test."""
-        y_score = decision_function(self.agent._target_q_network, X_test)
-        precision, recall, _ = precision_recall_curve(y_test, y_score)
-        AP = average_precision_score(y_test, y_score)
-
-        if plot:
-            plt.plot(recall, precision, label=f"AP: {AP:.3f}")
-            plt.xlim([0.0, 1.05])
-            plt.ylim([0.0, 1.05])
-            plt.xlabel("Recall")
-            plt.ylabel("Precision")
-            plt.title("PR Curve")
-            plt.legend(loc="lower left")
-            plt.grid(True)
-            plt.show()
+    def evaluate(self, X_test, y_test, X_val=None, y_val=None, plot: bool = False):
+        """
+        Final evaluation of trained Q-network with X_test and y_test.
+        Optional PR curve comparison to X_val, y_val to ensure no overfitting is taking place.
+        """
+        if plot and (X_val is not None) and (y_val is not None):
+            plot_pr_curve(self.agent._target_q_network, X_test, y_test, X_val, y_val)
 
         y_pred = network_predictions(self.agent._target_q_network, X_test)
-        return {**classification_metrics(y_test, y_pred), **{"AP": AP}}
+        return classification_metrics(y_test, y_pred)
 
     def save_model(self):
         """Saves Q-network as pickle to `model_dir`."""
