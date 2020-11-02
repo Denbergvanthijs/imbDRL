@@ -1,5 +1,7 @@
+import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import confusion_matrix, f1_score, fbeta_score
+from sklearn.metrics import (average_precision_score, confusion_matrix,
+                             f1_score, fbeta_score, precision_recall_curve)
 
 
 def network_predictions(network, X: np.ndarray) -> dict:
@@ -69,3 +71,44 @@ def classification_metrics(y_true: list, y_pred: list) -> dict:
     F2 = fbeta_score(y_true, y_pred, beta=2, zero_division=0)  # β of 2
 
     return {"Gmean": G_mean, "Fdot5": Fdot5, "F1": F1, "F2": F2, "TP": TP, "TN": TN, "FP": FP, "FN": FN}
+
+
+def plot_pr_curve(network, X_test: np.ndarray, y_test: np.ndarray,
+                  X_val: np.ndarray = None, y_val: np.ndarray = None) -> None:   # pragma: no cover
+    """Plots PR curve of X_test and y_test of given network.
+    Optionally plots PR curve of X_val and y_val.
+    Average precision is shown in the legend.
+
+    :param network: The network to use to calculate the PR curve
+    :type  network: (Q)Network
+    :param X_test: X data, input to network
+    :type  X_test: np.ndarray
+    :param y_test: True labels for `X_test`
+    :type  y_test: np.ndarray
+    :param X_val: Optional X data to plot validation PR curve
+    :type  X_val: np.ndarray
+    :param y_val: True labels for `X_val`
+    :type  y_val: np.ndarray
+
+    :return: None
+    :rtype: NoneType
+    """
+    y_test_score = decision_function(network, X_test)
+    test_precision, test_recall, _ = precision_recall_curve(y_test, y_test_score)
+    test_AP = average_precision_score(y_test, y_test_score)
+
+    if X_val is not None and y_val is not None:
+        y_val_score = decision_function(network, X_val)
+        val_precision, val_recall, _ = precision_recall_curve(y_val, y_val_score)
+        val_AP = average_precision_score(y_val, y_val_score)
+        plt.plot(val_recall, val_precision, label=f"Val AP: {val_AP:.3f}")
+
+    plt.plot(test_recall, test_precision, label=f"Test AP: {test_AP:.3f}")
+    plt.xlim([0.0, 1.05])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel("Recall")
+    plt.ylabel("Precision")
+    plt.title("PR Curve")
+    plt.legend(loc="lower left")
+    plt.grid(True)
+    plt.show()
