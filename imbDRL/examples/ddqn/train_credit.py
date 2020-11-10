@@ -4,8 +4,8 @@ from imbDRL.examples.ddqn.example_classes import TrainCustomDDQN
 from imbDRL.utils import rounded_dict
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
 
-episodes = 5_000  # Total number of episodes
-warmup_episodes = 6_000  # Amount of warmup steps to collect data with random policy
+episodes = 50_000  # Total number of episodes
+warmup_episodes = 60_000  # Amount of warmup steps to collect data with random policy
 memory_length = warmup_episodes  # Max length of the Replay Memory
 
 target_model_update = episodes // 100  # Period to overwrite the target Q-network with the default Q-network
