@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import (average_precision_score, confusion_matrix,
-                             f1_score, fbeta_score, precision_recall_curve)
+from sklearn.metrics import (auc, average_precision_score, confusion_matrix,
+                             f1_score, fbeta_score, precision_recall_curve,
+                             roc_curve)
 
 
 def network_predictions(network, X: np.ndarray) -> dict:
@@ -74,9 +75,9 @@ def classification_metrics(y_true: list, y_pred: list) -> dict:
 
 
 def plot_pr_curve(network, X_test: np.ndarray, y_test: np.ndarray,
-                  X_val: np.ndarray = None, y_val: np.ndarray = None) -> None:   # pragma: no cover
+                  X_train: np.ndarray = None, y_train: np.ndarray = None) -> None:   # pragma: no cover
     """Plots PR curve of X_test and y_test of given network.
-    Optionally plots PR curve of X_val and y_val.
+    Optionally plots PR curve of X_train and y_train.
     Average precision is shown in the legend.
 
     :param network: The network to use to calculate the PR curve
@@ -85,30 +86,77 @@ def plot_pr_curve(network, X_test: np.ndarray, y_test: np.ndarray,
     :type  X_test: np.ndarray
     :param y_test: True labels for `X_test`
     :type  y_test: np.ndarray
-    :param X_val: Optional X data to plot validation PR curve
-    :type  X_val: np.ndarray
-    :param y_val: True labels for `X_val`
-    :type  y_val: np.ndarray
+    :param X_train: Optional X data to plot validation PR curve
+    :type  X_train: np.ndarray
+    :param y_train: True labels for `X_val`
+    :type  y_train: np.ndarray
 
     :return: None
     :rtype: NoneType
     """
+    plt.plot((0, 1), (1, 0), color="black", linestyle="--", label="Baseline")
+    # TODO: Consider changing baseline
+
+    if X_train is not None and y_train is not None:
+        y_val_score = decision_function(network, X_train)
+        val_precision, val_recall, _ = precision_recall_curve(y_train, y_val_score)
+        val_AP = average_precision_score(y_train, y_val_score)
+        plt.plot(val_recall, val_precision, label=f"Train AP: {val_AP:.3f}")
+
     y_test_score = decision_function(network, X_test)
     test_precision, test_recall, _ = precision_recall_curve(y_test, y_test_score)
     test_AP = average_precision_score(y_test, y_test_score)
 
-    if X_val is not None and y_val is not None:
-        y_val_score = decision_function(network, X_val)
-        val_precision, val_recall, _ = precision_recall_curve(y_val, y_val_score)
-        val_AP = average_precision_score(y_val, y_val_score)
-        plt.plot(val_recall, val_precision, label=f"Val AP: {val_AP:.3f}")
-
     plt.plot(test_recall, test_precision, label=f"Test AP: {test_AP:.3f}")
-    plt.xlim([0.0, 1.05])
-    plt.ylim([0.0, 1.05])
+    plt.xlim((-0.05, 1.05))
+    plt.ylim((-0.05, 1.05))
     plt.xlabel("Recall")
     plt.ylabel("Precision")
     plt.title("PR Curve")
+    plt.gca().set_aspect("equal", adjustable='box')
     plt.legend(loc="lower left")
+    plt.grid(True)
+    plt.show()
+
+
+def plot_roc_curve(network, X_test: np.ndarray, y_test: np.ndarray,
+                   X_train: np.ndarray = None, y_train: np.ndarray = None) -> None:   # pragma: no cover
+    """Plots ROC curve of X_test and y_test of given network.
+    Optionally plots ROC curve of X_train and y_train.
+    Average precision is shown in the legend.
+
+    :param network: The network to use to calculate the PR curve
+    :type  network: (Q)Network
+    :param X_test: X data, input to network
+    :type  X_test: np.ndarray
+    :param y_test: True labels for `X_test`
+    :type  y_test: np.ndarray
+    :param X_train: Optional X data to plot validation PR curve
+    :type  X_train: np.ndarray
+    :param y_train: True labels for `X_val`
+    :type  y_train: np.ndarray
+
+    :return: None
+    :rtype: NoneType
+    """
+    plt.plot((0, 1), (0, 1), color="black", linestyle="--", label="Baseline")
+    # TODO: Consider changing baseline
+
+    if X_train is not None and y_train is not None:
+        y_train_score = decision_function(network, X_train)
+        fpr_train, tpr_train, _ = roc_curve(y_train, y_train_score)
+        plt.plot(fpr_train, tpr_train, label=f"Train AUROC: {auc(fpr_train, tpr_train):.2f}")
+
+    y_test_score = decision_function(network, X_test)
+    fpr_test, tpr_test, _ = roc_curve(y_test, y_test_score)
+
+    plt.plot(fpr_test, tpr_test, label=f"Test AUROC: {auc(fpr_test, tpr_test):.2f}")
+    plt.xlim((-0.05, 1.05))
+    plt.ylim((-0.05, 1.05))
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("ROC Curve")
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.legend(loc="lower right")
     plt.grid(True)
     plt.show()
