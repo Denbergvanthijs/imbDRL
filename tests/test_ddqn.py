@@ -76,7 +76,7 @@ def test_train(tmp_path):
     tmp_models = str(tmp_path / "test_model")  # No support for pathLib https://github.com/tensorflow/tensorflow/issues/37357
     tmp_logs = str(tmp_path / "test_log")
 
-    model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5, model_dir=tmp_models, log_dir=tmp_logs, val_every=2, log_every=2)
+    model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5, model_dir=tmp_models, log_dir=tmp_logs, val_every=2, memory_length=30)
     train_env = TFPyEnvironment(suite_gym.load("CartPole-v0"))
 
     with pytest.raises(Exception) as exc:
@@ -86,5 +86,18 @@ def test_train(tmp_path):
     model.compile_model(train_env, None, (128,), None)
     model.train()
     assert model.replay_buffer.num_frames() == 10 + 10  # 10 for warmup + 1 for each episode
+    assert model.global_episode == 10
+    assert model.epsilon_decay() == 0.1
+
+    model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5, model_dir=tmp_models, log_dir=tmp_logs, val_every=2)
+    train_env = TFPyEnvironment(suite_gym.load("CartPole-v0"))
+
+    with pytest.raises(Exception) as exc:
+        model.train()
+    assert "must be compiled" in str(exc.value)
+
+    model.compile_model(train_env, None, (128,), None)
+    model.train()
+    assert model.replay_buffer.num_frames() == 10  # 10 in total since no memory length is defined
     assert model.global_episode == 10
     assert model.epsilon_decay() == 0.1

@@ -103,6 +103,43 @@ def test_load_creditcard(tmp_path):
     assert np.array_equal(credit_data[0][2], np.ones(29, dtype=np.float32))  # Max value
 
 
+def test_load_sepsis(tmp_path):
+    """Tests imbDRL.data.load_sepsis."""
+    cols = "subject_id,hadm_id,sbp,dbp,ph,so2,temp,hr,resp,wbcc,pco2,sepsis\n"
+    row1 = str(list(range(0, 12))).strip("[]") + "\n"
+    row2 = str(list(range(12, 24))).strip("[]") + "\n"
+    row3 = str(list(range(24, 36))).strip("[]") + "\n"
+
+    with pytest.raises(FileNotFoundError) as exc:
+        data.load_sepsis(fp_train=tmp_path / "thisfiledoesnotexist.csv")
+    assert "fp_train" in str(exc.value)
+
+    with open(data_file := tmp_path / "data_file.csv", "w") as f:
+        f.writelines([cols, row1, row2, row3])
+
+    with pytest.raises(FileNotFoundError) as exc:
+        data.load_sepsis(fp_train=data_file, fp_test=tmp_path / "thisfiledoesnotexist.csv")
+    assert "fp_test" in str(exc.value)
+
+    with pytest.raises(TypeError) as exc:
+        data.load_sepsis(fp_train=data_file, fp_test=data_file, normalization=1234)
+    assert "must be of type `bool`" in str(exc.value)
+
+    credit_data = data.load_sepsis(fp_train=data_file, fp_test=data_file)
+    assert [x.shape for x in credit_data] == [(3, 8), (3, ), (3, 8), (3, )]
+    assert [x.dtype for x in credit_data] == ["float32", "int32", "float32", "int32"]
+    assert np.array_equal(credit_data[0][0], np.arange(2, 10, dtype=np.float32))  # No normalization
+    assert np.array_equal(credit_data[0][1], np.arange(14, 22, dtype=np.float32))
+    assert np.array_equal(credit_data[0][2], np.arange(26, 34, dtype=np.float32))
+
+    credit_data = data.load_sepsis(fp_train=data_file, fp_test=data_file, normalization=True)
+    assert [x.shape for x in credit_data] == [(3, 8), (3, ), (3, 8), (3, )]
+    assert [x.dtype for x in credit_data] == ["float32", "int32", "float32", "int32"]
+    assert np.array_equal(credit_data[0][0], np.zeros(8, dtype=np.float32))  # Min value
+    assert np.array_equal(credit_data[0][1], np.full(8, 0.5, dtype=np.float32))  # Halfway
+    assert np.array_equal(credit_data[0][2], np.ones(8, dtype=np.float32))  # Max value
+
+
 def test_get_train_test_val(capsys):
     """Tests imbDRL.data.get_train_test_val."""
     X = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
@@ -120,7 +157,7 @@ def test_get_train_test_val(capsys):
         data.get_train_test_val(X, y, X, y, 0.2, [0], [1, 2], print_stats=1234)
     assert "must be of type" in str(exc.value)
 
-    X_train, y_train, X_test, y_test, X_val, y_val = data.get_train_test_val(X, y, X, y, 0.25, [1], [0], print_stats=False)
+    X_train, y_train, X_test, y_test, X_val, y_val = data.get_train_test_val(X, y, X, y, [1], [0], imb_rate=0.25, print_stats=False)
     assert X_train.shape == (2, 2)
     assert X_test.shape == (3, 2)
     assert X_val.shape == (1, 2)
@@ -128,14 +165,14 @@ def test_get_train_test_val(capsys):
     assert y_test.shape == (3, )
     assert y_val.shape == (1, )
 
-    data.get_train_test_val(X, y, X, y, 0.25, [1], [0], print_stats=True)  # Check if printing
+    data.get_train_test_val(X, y, X, y, [1], [0], imb_rate=0.25, print_stats=True)  # Check if printing
     captured = capsys.readouterr()
     assert captured.out == ("Imbalance ratio `p`:\n"
                             "\ttrain:      n=0, p=0.000000\n"
                             "\ttest:       n=0, p=0.000000\n"
                             "\tvalidation: n=0, p=0.000000\n")
 
-    data.get_train_test_val(X, y, X, y, 0.25, [1], [0], print_stats=False)  # Check if not printing
+    data.get_train_test_val(X, y, X, y, [1], [0], imb_rate=0.25, print_stats=False)  # Check if not printing
     captured = capsys.readouterr()
     assert captured.out == ""
 
@@ -146,43 +183,48 @@ def test_imbalance_data():
     y = [2, 2, 2, 3, 3, 3]
 
     with pytest.raises(TypeError) as exc:
-        data.imbalance_data(X, np.array(y), 0.5, [2], [3])
+        data.imbalance_data(X, np.array(y), [2], [3], imb_rate=0.5)
     assert "`X` must be of type" in str(exc.value)
 
     with pytest.raises(TypeError) as exc:
-        data.imbalance_data(np.array(X), y, 0.5, [2], [3])
+        data.imbalance_data(np.array(X), y, [2], [3], imb_rate=0.5)
     assert "`y` must be of type" in str(exc.value)
 
     X = np.array(X)
     y = np.array(y)
 
     with pytest.raises(ValueError) as exc:
-        data.imbalance_data(X, y, 0.0, [2], [3])
+        data.imbalance_data(X, y, [2], [3], imb_rate=0.0)
     assert "not in interval" in str(exc.value)
 
     with pytest.raises(ValueError) as exc:
-        data.imbalance_data(X, y, 1, [2], [3])
+        data.imbalance_data(X, y, [2], [3], imb_rate=0.0)
     assert "not in interval" in str(exc.value)
 
     with pytest.raises(TypeError) as exc:
-        data.imbalance_data(X, y, 0.5, 2, [3])
+        data.imbalance_data(X, y, 2, [3], imb_rate=0.0)
     assert "`min_class` must be of type list or tuple" in str(exc.value)
 
     with pytest.raises(TypeError) as exc:
-        data.imbalance_data(X, y, 0.5, [2], 3)
+        data.imbalance_data(X, y, [2], 3, imb_rate=0.0)
     assert "`maj_class` must be of type list or tuple" in str(exc.value)
 
     X = np.arange(10)
     y = np.arange(11)
 
     with pytest.raises(ValueError) as exc:
-        data.imbalance_data(X, y, 0.2, [1], [0])
+        data.imbalance_data(X, y, [1], [0], imb_rate=0.2)
     assert "must contain the same amount of rows" in str(exc.value)
 
     X = np.arange(100)
     y = np.concatenate([np.ones(50), np.zeros(50)])
-    X, y = data.imbalance_data(X, y, 0.2, [1], [0])
+    X, y = data.imbalance_data(X, y, [1], [0], imb_rate=0.2)
     assert [(60, ), (60, ), 10] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_rate, 10/50(=0.2) is new imb_rate
+
+    X = np.arange(100)
+    y = np.concatenate([np.ones(50), np.zeros(50)])
+    X, y = data.imbalance_data(X, y, [1], [0])
+    assert [(100, ), (100, ), 50] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_rate, 50/50(=1) is new imb_rate
 
 
 def test_collect_step():

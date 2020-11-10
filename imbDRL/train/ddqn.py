@@ -18,9 +18,9 @@ class TrainDDQN(ABC):
     """Wrapper for DDQN training, validation, saving etc."""
 
     def __init__(self, episodes: int, warmup_episodes: int, lr: float, gamma: float, min_epsilon: float, decay_episodes: int,
-                 model_dir: str = None, log_dir: str = None, batch_size: int = 64, memory_length: int = 100_000,
-                 collect_steps_per_episode: int = 1, log_every: int = 200, val_every: int = 1_000,
-                 target_model_update: int = 1, target_update_tau: float = 1.0) -> None:
+                 model_dir: str = None, log_dir: str = None, batch_size: int = 64, memory_length: int = None,
+                 collect_steps_per_episode: int = 1, val_every: int = None, target_model_update: int = 1,
+                 target_update_tau: float = 1.0) -> None:
         """
         Wrapper to make training easier.
         Code is partly based of https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
@@ -47,8 +47,6 @@ class TrainDDQN(ABC):
         :type  memory_length: int
         :param collect_steps_per_episode: Amount of data to collect for Replay Buffer each episiode
         :type  collect_steps_per_episode: int
-        :param log_every: Save the training loss every X episodes
-        :type  log_every: int
         :param val_every: Validate the model every X episodes using the `collect_metrics()` function
         :type  val_every: int
         :param target_model_update: Update the target Q-network every X episodes
@@ -62,11 +60,17 @@ class TrainDDQN(ABC):
         self.episodes = episodes  # Total episodes
         self.warmup_episodes = warmup_episodes  # Amount of warmup steps before training
         self.batch_size = batch_size  # Batch size of Replay Memory
-        self.memory_length = memory_length  # Max Replay Memory length
         self.collect_steps_per_episode = collect_steps_per_episode  # Amount of steps to collect data each episode
 
-        self.log_every = log_every  # Print step and loss every `LOG_EVERY` episodes
-        self.val_every = val_every  # Validate the policy every `VAL_EVERY` episodes
+        if memory_length is not None:
+            self.memory_length = memory_length  # Max Replay Memory length
+        else:
+            self.memory_length = warmup_episodes
+
+        if val_every is not None:
+            self.val_every = val_every  # Validate the policy every `VAL_EVERY` episodes
+        else:
+            self.val_every = episodes // 50
 
         self.lr = lr  # Learning Rate
         self.gamma = gamma  # Discount factor
@@ -163,6 +167,7 @@ class TrainDDQN(ABC):
 
         # Warmup period, fill memory with random actions
         collect_data(self.train_env, self.random_policy, self.replay_buffer, self.warmup_episodes, logging=True)
+
         self.dataset = self.replay_buffer.as_dataset(sample_batch_size=self.batch_size, num_steps=2).prefetch(3)
         self.iterator = iter(self.dataset)
         self.agent.train = common.function(self.agent.train)  # Optimalization
@@ -177,11 +182,10 @@ class TrainDDQN(ABC):
             experiences, _ = next(self.iterator)
             train_loss = self.agent.train(experiences).loss
 
-            if not self.global_episode % self.log_every:
+            if not self.global_episode % self.val_every:
                 with self.writer.as_default():
                     tf.summary.scalar("train_loss", train_loss, step=self.global_episode)
 
-            if not self.global_episode % self.val_every:
                 self.collect_metrics(*args)
 
         self.save_model()
