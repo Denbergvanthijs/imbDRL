@@ -122,8 +122,51 @@ def load_creditcard(fp_train: str = "./data/credit0.csv", fp_test: str = "./data
     return X_train.values, y_train.values, X_test.values, y_test.values  # Numpy arrays
 
 
-def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndarray, y_test: np.ndarray, imb_rate: float,
-                       min_classes: list, maj_classes: list, val_frac: float = 0.25, print_stats: bool = True) -> TrainTestValData:
+def load_sepsis(fp_train: str = "./data/sepsis0.csv", fp_test: str = "./data/sepsis1.csv",
+                normalization: bool = False) -> TrainTestData:
+    """
+    Loads the sepsis dataset from local filepaths. Returns X and y for both train and test datasets.
+    Option to normalize the data with min-max normalization.
+    Source for dataset: https://mimic-iv.mit.edu/
+
+    :param fp_train: Location of the train csv-file
+    :type  fp_train: str
+    :param fp_test: Location of the test csv-file
+    :type  fp_test: str
+    :param normalization: Normalize the data with min-max normalization?
+    :type  normalization: bool
+
+    :return: Tuple of (X_train, y_train, X_test, y_test) containing original split of train/test
+    :rtype: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+    """
+    if not os.path.isfile(fp_train):
+        raise FileNotFoundError(f"`fp_train` {fp_train} does not exist.")
+    if not os.path.isfile(fp_test):
+        raise FileNotFoundError(f"`fp_test` {fp_test} does not exist.")
+    if not isinstance(normalization, bool):
+        raise TypeError(f"`normalization` must be of type `bool`, not {type(normalization)}")
+
+    X_train = read_csv(fp_train).astype(np.float32)  # DataFrames directly converted to float32
+    X_test = read_csv(fp_test).astype(np.float32)
+
+    y_train = X_train["sepsis"].astype(np.int32)  # 1: Sepsis during admission, 0: No sepsis during admission
+    y_test = X_test["sepsis"].astype(np.int32)
+    X_train.drop(columns=["subject_id", "hadm_id", "sepsis", "pco2"], inplace=True)  # Dropping Subject and admission columns
+    X_test.drop(columns=["subject_id", "hadm_id", "sepsis", "pco2"], inplace=True)  # Dropping pco2
+
+    # Other data sources are already normalized. RGB values are always in range 0 to 255.
+    if normalization:
+        mini, maxi = X_train.min(axis=0), X_train.max(axis=0)
+        X_train -= mini
+        X_train /= maxi - mini
+        X_test -= mini
+        X_test /= maxi - mini
+
+    return X_train.values, y_train.values, X_test.values, y_test.values  # Numpy arrays
+
+
+def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndarray, y_test: np.ndarray, min_classes: list,
+                       maj_classes: list, imb_rate: float = None, val_frac: float = 0.25, print_stats: bool = True) -> TrainTestValData:
     """
     Imbalances data and divides the data into train, test and validation sets.
     The imbalance rate of each individual dataset is approx. the same as the given `imb_rate`.
@@ -136,12 +179,13 @@ def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndar
     :type  X_test: np.ndarray
     :param y_test: The y_test data
     :type  y_test: np.ndarray
-    :param imb_rate: Imbalance ratio for minority to majority class: len(minority datapoints) / len(majority datapoints)
-    :type  imb_rate: float
     :param min_classes: List of labels of all minority classes
     :type  min_classes: list
     :param maj_classes: List of labels of all majority classes.
     :type  maj_classes: list
+    :param imb_rate: Imbalance ratio for minority to majority class: len(minority datapoints) / len(majority datapoints)
+        If the `imb_rate` is None, data will not be imbalanced and will only be relabeled to 1's and 0's.
+    :type  imb_rate: float
     :param val_frac: Fraction to take from X_train and y_train for X_val and y_val
     :type  val_frac: float
     :param print_stats: Print the imbalance ratio of the imbalanced data?
@@ -155,8 +199,8 @@ def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndar
     if not isinstance(print_stats, bool):
         raise TypeError(f"`print_stats` must be of type `bool`, not {type(print_stats)}.")
 
-    X_train, y_train = imbalance_data(X_train, y_train, imb_rate, min_classes, maj_classes)  # Imbalance the data
-    X_test, y_test = imbalance_data(X_test, y_test, imb_rate, min_classes, maj_classes)
+    X_train, y_train = imbalance_data(X_train, y_train, min_classes, maj_classes, imb_rate=imb_rate)  # Imbalance the data
+    X_test, y_test = imbalance_data(X_test, y_test, min_classes, maj_classes, imb_rate=imb_rate)
 
     # stratify=y_train to ensure class balance is kept between train and validation datasets
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=val_frac, stratify=y_train)
@@ -171,12 +215,12 @@ def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndar
     return X_train, y_train, X_test, y_test, X_val, y_val
 
 
-def imbalance_data(X: np.ndarray, y: np.ndarray, imb_rate: float, min_class: list, maj_class: list) -> Tuple[np.ndarray, np.ndarray]:
+def imbalance_data(X: np.ndarray, y: np.ndarray, min_class: list, maj_class: list, imb_rate: float = None) -> Tuple[np.ndarray, np.ndarray]:
     """
     Split data in minority and majority, only values in {min_class, maj_class} will be kept.
     (Possibly) decrease minority rows to match the imbalance rate.
     If initial imb_rate of dataset is lower than given `imb_rate`, the imb_rate will not be changed.
-    Labels of minority and majority will change to 1 and 0.
+    If the `imb_rate` is None, data will not be imbalanced and will only be relabeled to 1's and 0's.
 
     Note: Data will not be shuffled
     """
@@ -186,12 +230,16 @@ def imbalance_data(X: np.ndarray, y: np.ndarray, imb_rate: float, min_class: lis
         raise TypeError(f"`y` must be of type `np.ndarray` not {type(y)}")
     if X.shape[0] != y.shape[0]:
         raise ValueError("`X` and `y` must contain the same amount of rows.")
-    if not 0 < imb_rate < 1:
-        raise ValueError(f"{imb_rate} is not in interval 0 < x < 1.")
     if not isinstance(min_class, (list, tuple)):
         raise TypeError("`min_class` must be of type list or tuple.")
     if not isinstance(maj_class, (list, tuple)):
         raise TypeError("`maj_class` must be of type list or tuple.")
+
+    if (imb_rate is not None) and not (0 < imb_rate < 1):
+        raise ValueError(f"{imb_rate} is not in interval 0 < x < 1.")
+
+    if imb_rate is None:  # Do not imbalance data if no `imb_rate` is given
+        imb_rate = 1
 
     X_min, X_maj = [], []
     for i, value in enumerate(y):
