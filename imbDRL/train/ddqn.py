@@ -169,7 +169,8 @@ class TrainDDQN(ABC):
         collect_data(self.train_env, self.random_policy, self.replay_buffer, self.warmup_episodes, logging=True)
 
         self.dataset = self.replay_buffer.as_dataset(sample_batch_size=self.batch_size, num_steps=2,
-                                                     num_parallel_calls=tf.data.experimental.AUTOTUNE).prefetch(tf.data.experimental.AUTOTUNE)
+                                                     num_parallel_calls=tf.data.experimental.AUTOTUNE).prefetch(
+                                                         tf.data.experimental.AUTOTUNE)
         self.iterator = iter(self.dataset)
         self.agent.train = common.function(self.agent.train)  # Optimalization
 

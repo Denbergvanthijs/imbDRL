@@ -319,8 +319,3 @@ def collect_data(env, policy, buffer, steps: int, logging: bool = False) -> None
     else:
         for _ in range(steps):
             collect_step(env, policy, buffer)
-
-
-if __name__ == "__main__":
-    data = load_aki(normalization=True)
-    print([x.shape for x in data])
