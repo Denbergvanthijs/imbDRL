@@ -50,16 +50,16 @@ def test_classification_metrics():
 
     stats = metrics.classification_metrics(y_true, y_pred)
     approx = rounded_dict(stats)
-    assert approx == {"Gmean": 0.0, "Fdot5": 0.833333, "F1": 0.666667, "F2": 0.555556, "TP": 3, "TN": 0, "FP": 0, "FN": 3}
+    assert approx == {"Gmean": 0.0, "F1": 0.666667, "Sensitivity": 0.5, "Specificity": 0.0, "TP": 3, "TN": 0, "FP": 0, "FN": 3}
 
     y_true = [1, 1, 1, 1, 1, 1]
     y_pred = [0, 0, 0, 0, 0, 0]
     stats = metrics.classification_metrics(y_true, y_pred)
     approx = rounded_dict(stats)
-    assert approx == {"Gmean": 0.0, "Fdot5": 0.0, "F1": 0.0, "F2": 0.0, "TP": 0, "TN": 0, "FP": 0, "FN": 6}
+    assert approx == {"Gmean": 0.0, "F1": 0.0, "Sensitivity": 0.0, "Specificity": 0.0, "TP": 0, "TN": 0, "FP": 0, "FN": 6}
 
     y_true = [0, 0, 0, 0, 0, 0]
     y_pred = [1, 1, 1, 1, 1, 1]
     stats = metrics.classification_metrics(y_true, y_pred)
     approx = rounded_dict(stats)
-    assert approx == {"Gmean": 0.0, "Fdot5": 0.0, "F1": 0.0, "F2": 0.0, "TP": 0, "TN": 0, "FP": 6, "FN": 0}
+    assert approx == {"Gmean": 0.0, "F1": 0.0, "Sensitivity": 0.0, "Specificity": 0.0, "TP": 0, "TN": 0, "FP": 6, "FN": 0}
