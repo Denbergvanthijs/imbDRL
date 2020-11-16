@@ -9,7 +9,7 @@ warmup_episodes = 60_000  # Amount of warmup steps to collect data with random p
 memory_length = warmup_episodes  # Max length of the Replay Memory
 
 target_model_update = episodes // 100  # Period to overwrite the target Q-network with the default Q-network
-target_update_tau = 0.005  # Soften the target model update
+target_update_tau = 0.01  # Soften the target model update
 
 conv_layers = None  # Convolutional layers
 dense_layers = (256, 256, )  # Dense layers
