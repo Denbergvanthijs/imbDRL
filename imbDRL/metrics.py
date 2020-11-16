@@ -1,8 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import (auc, average_precision_score, confusion_matrix,
-                             f1_score, fbeta_score, precision_recall_curve,
-                             roc_curve)
+                             f1_score, precision_recall_curve, roc_curve)
 
 
 def network_predictions(network, X: np.ndarray) -> dict:
@@ -51,7 +50,7 @@ def classification_metrics(y_true: list, y_pred: list) -> dict:
     :param y_pred: Predicted labels, corresponding to y_true
     :type  y_pred: np.ndarray
 
-    :return: Dictionairy containing Geometric Mean, F0.5, F1, F2, TP, TN, FP, FN
+    :return: Dictionairy containing Geometric Mean, F1, Sensitivity, Specificity, TP, TN, FP, FN
     :rtype: dict
     """
     if not isinstance(y_true, (list, tuple, np.ndarray)):
@@ -65,13 +64,10 @@ def classification_metrics(y_true: list, y_pred: list) -> dict:
 
     recall = TP / denom if (denom := TP + FN) else 0  # Sensitivity, True Positive Rate (TPR)
     specificity = TN / denom if (denom := TN + FP) else 0  # Specificity, selectivity, True Negative Rate (TNR)
-
     G_mean = np.sqrt(recall * specificity)  # Geometric mean of recall and specificity
-    Fdot5 = fbeta_score(y_true, y_pred, beta=0.5, zero_division=0)  # β of 0.5
     F1 = f1_score(y_true, y_pred, zero_division=0)  # Default F-measure
-    F2 = fbeta_score(y_true, y_pred, beta=2, zero_division=0)  # β of 2
 
-    return {"Gmean": G_mean, "Fdot5": Fdot5, "F1": F1, "F2": F2, "TP": TP, "TN": TN, "FP": FP, "FN": FN}
+    return {"Gmean": G_mean, "F1": F1, "Sensitivity": recall, "Specificity": specificity, "TP": TP, "TN": TN, "FP": FP, "FN": FN}
 
 
 def plot_pr_curve(network, X_test: np.ndarray, y_test: np.ndarray,
