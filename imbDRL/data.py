@@ -311,11 +311,7 @@ def collect_step(environment, policy, buffer) -> None:
     buffer.add_batch(traj)
 
 
-def collect_data(env, policy, buffer, steps: int, logging: bool = False) -> None:
+def collect_data(env, policy, buffer, steps: int, progressbar: bool = False) -> None:
     """Collect data for a number of steps. Mainly used for warmup period."""
-    if logging:
-        for _ in tqdm(range(steps)):
-            collect_step(env, policy, buffer)
-    else:
-        for _ in range(steps):
-            collect_step(env, policy, buffer)
+    for _ in tqdm(range(steps), disable=(not progressbar)):
+        collect_step(env, policy, buffer)

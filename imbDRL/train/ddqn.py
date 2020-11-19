@@ -20,7 +20,7 @@ class TrainDDQN(ABC):
     def __init__(self, episodes: int, warmup_episodes: int, lr: float, gamma: float, min_epsilon: float, decay_episodes: int,
                  model_dir: str = None, log_dir: str = None, batch_size: int = 64, memory_length: int = None,
                  collect_steps_per_episode: int = 1, val_every: int = None, target_model_update: int = 1,
-                 target_update_tau: float = 1.0) -> None:
+                 target_update_tau: float = 1.0, progressbar: bool = True) -> None:
         """
         Wrapper to make training easier.
         Code is partly based of https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
@@ -53,6 +53,8 @@ class TrainDDQN(ABC):
         :type  target_model_update: int
         :param target_update_tau: Parameter for softening the `target_model_update`
         :type  target_update_tau: float
+        :param progressbar: Enable or disable the progressbar for collecting data and training
+        :type  progressbar: bool
 
         :return: None
         :rtype: NoneType
@@ -78,6 +80,7 @@ class TrainDDQN(ABC):
         self.decay_episodes = decay_episodes  # Number of episodes to decay from 1.0 to `EPSILON`
         self.target_model_update = target_model_update  # Period for soft updates
         self.target_update_tau = target_update_tau
+        self.progressbar = progressbar  # Enable or disable the progressbar for collecting data and training
 
         NOW = datetime.now().strftime("%Y%m%d_%H%M%S")
         if model_dir is None:
@@ -166,7 +169,7 @@ class TrainDDQN(ABC):
         assert self.compiled, "Model must be compiled with model.compile_model() before training."
 
         # Warmup period, fill memory with random actions
-        collect_data(self.train_env, self.random_policy, self.replay_buffer, self.warmup_episodes, logging=True)
+        collect_data(self.train_env, self.random_policy, self.replay_buffer, self.warmup_episodes, progressbar=self.progressbar)
 
         self.dataset = self.replay_buffer.as_dataset(sample_batch_size=self.batch_size, num_steps=2,
                                                      num_parallel_calls=tf.data.experimental.AUTOTUNE).prefetch(
@@ -175,7 +178,7 @@ class TrainDDQN(ABC):
         self.agent.train = common.function(self.agent.train)  # Optimalization
 
         self.collect_metrics(*args)  # Initial collection for step 0
-        for _ in tqdm(range(self.episodes)):
+        for _ in tqdm(range(self.episodes), disable=(not self.progressbar)):
             # Collect a few steps using collect_policy and save to `replay_buffer`
             # TODO: determine which policy to use: collect_policy or policy
             collect_data(self.train_env, self.agent.collect_policy, self.replay_buffer, self.collect_steps_per_episode)
