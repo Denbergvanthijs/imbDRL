@@ -268,7 +268,7 @@ def test_collect_data():
     data.collect_data(env, policy, buffer, 1)
     assert buffer.num_frames() == 1
 
-    data.collect_data(env, policy, buffer, 3, logging=True)
+    data.collect_data(env, policy, buffer, 3, progressbar=True)
     assert buffer.num_frames() == 4
 
     data.collect_data(env, policy, buffer, 12)
