@@ -1,5 +1,6 @@
 import pickle
 
+import numpy as np
 import tensorflow as tf
 from imbDRL.metrics import (classification_metrics, network_predictions,
                             plot_pr_curve, plot_roc_curve)
@@ -14,8 +15,18 @@ class TrainCustomDDQN(TrainDDQN):
         """Collects metrics using the trained Q-network."""
         y_pred = network_predictions(self.agent._target_q_network, X_val)
         stats = classification_metrics(y_val, y_pred)
+        avgQ = np.mean(np.max(self.agent._target_q_network(X_val)[0].numpy(), axis=1))  # Max action for each x in X
+
+        if not hasattr(self, 'best_f1'):  # If no best model yet
+            self.best_f1 = 0.0
+
+        if stats.get("F1") >= self.best_f1:  # Overwrite best model
+            self.best_model = self.agent._target_q_network
+            self.best_f1 = stats.get("F1")
 
         with self.writer.as_default():
+            tf.summary.scalar("AverageQ", avgQ, step=self.global_episode)
+
             for k, v in stats.items():
                 tf.summary.scalar(k, v, step=self.global_episode)
 
@@ -25,16 +36,16 @@ class TrainCustomDDQN(TrainDDQN):
         Optional PR and ROC curve comparison to X_train, y_train to ensure no overfitting is taking place.
         """
         if (X_train is not None) and (y_train is not None):
-            plot_pr_curve(self.agent._target_q_network, X_test, y_test, X_train, y_train)
-            plot_roc_curve(self.agent._target_q_network, X_test, y_test, X_train, y_train)
+            plot_pr_curve(self.best_model, X_test, y_test, X_train, y_train)
+            plot_roc_curve(self.best_model, X_test, y_test, X_train, y_train)
 
-        y_pred = network_predictions(self.agent._target_q_network, X_test)
+        y_pred = network_predictions(self.best_model, X_test)
         return classification_metrics(y_test, y_pred)
 
     def save_model(self):
         """Saves Q-network as pickle to `model_dir`."""
         with open(self.model_dir + ".pkl", "wb") as f:  # Save Q-network as pickle
-            pickle.dump(self.agent._target_q_network, f)
+            pickle.dump(self.best_model, f)
 
     @staticmethod
     def load_model(fp: str):
