@@ -18,7 +18,7 @@ class TrainBandit(ABC):
     """Wrapper for DDQN training, validation, saving etc."""
 
     def __init__(self, episodes: int, lr: float, min_epsilon: float, decay_episodes: int, model_dir: str = None, log_dir: str = None,
-                 batch_size: int = 64, steps_per_loop: int = 64, log_every: int = 10, val_every: int = 20) -> None:
+                 batch_size: int = 64, steps_per_loop: int = 64, val_every: int = None) -> None:
         """
         Wrapper to make training easier.
         Code is partly based of https://www.tensorflow.org/agents/tutorials/bandits_tutorial
@@ -39,8 +39,6 @@ class TrainBandit(ABC):
         :type  batch_size: int
         :param steps_per_loop: Number of steps to take each episode
         :type  steps_per_loop: int
-        :param log_every: Save the training loss every X episodes
-        :type  log_every: int
         :param val_every: Validate the model every X episodes using the `collect_metrics()` function
         :type  val_every: int
 
@@ -51,8 +49,10 @@ class TrainBandit(ABC):
         self.batch_size = batch_size  # Batch size of Replay Memory
         self.steps_per_loop = steps_per_loop
 
-        self.log_every = log_every  # Report loss every `LOG_EVERY` episodes
-        self.val_every = val_every  # Validate the policy every `VAL_EVERY` episodes
+        if val_every is not None:
+            self.val_every = val_every  # Validate the policy every `VAL_EVERY` episodes
+        else:
+            self.val_every = episodes // min(50, self.episodes)  # Can't validate the model 50 times if self.episodes < 50
 
         self.lr = lr  # Learning Rate
         self.min_epsilon = min_epsilon  # Minimal chance of choosing random action
@@ -150,12 +150,11 @@ class TrainBandit(ABC):
         for _ in tqdm(range(self.episodes)):
             loss_info = self.training_loop()
 
-            if not self.global_episode % self.log_every:
-                with self.writer.as_default():
-                    tf.summary.scalar("train_loss", loss_info.loss, step=self.global_episode)
-
             if not self.global_episode % self.val_every:
                 self.collect_metrics(*args)
+
+                with self.writer.as_default():
+                    tf.summary.scalar("train_loss", loss_info.loss, step=self.global_episode)
 
         self.save_model()
 

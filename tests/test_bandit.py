@@ -76,7 +76,7 @@ def test_train(tmp_path):
     tmp_models = str(tmp_path / "test_model")  # No support for pathLib https://github.com/tensorflow/tensorflow/issues/37357
     tmp_logs = str(tmp_path / "test_log")
 
-    model = TrainBanditChild(10, 0.001, 0.1, 5, model_dir=tmp_models, log_dir=tmp_logs, val_every=2, log_every=2)
+    model = TrainBanditChild(10, 0.001, 0.1, 5, model_dir=tmp_models, log_dir=tmp_logs, val_every=2)
     train_env = TFPyEnvironment(suite_gym.load("CartPole-v0"))
 
     with pytest.raises(Exception) as exc:
