@@ -198,10 +198,10 @@ class TrainDDQN(ABC):
 
     def collect_data(self, policy, steps: int) -> None:
         """Collect data for a number of steps. Mainly used for warmup period."""
-        op = DynamicStepDriver(self.train_env,
-                               policy,
-                               observers=[self.replay_buffer.add_batch],
-                               num_steps=steps).run()
+        _ = DynamicStepDriver(self.train_env,
+                              policy,
+                              observers=[self.replay_buffer.add_batch],
+                              num_steps=steps).run()
 
     @abstractmethod
     def collect_metrics(self):
