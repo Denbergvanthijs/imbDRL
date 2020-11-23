@@ -21,7 +21,7 @@ class TrainCustomDDQN(TrainDDQN):
             self.best_f1 = 0.0
 
         if stats.get("F1") >= self.best_f1:  # Overwrite best model
-            self.best_model = self.agent._target_q_network
+            self.save_model()  # Saving directly to avoid shallow copy without trained weights
             self.best_f1 = stats.get("F1")
 
         with self.writer.as_default():
@@ -35,17 +35,19 @@ class TrainCustomDDQN(TrainDDQN):
         Final evaluation of trained Q-network with X_test and y_test.
         Optional PR and ROC curve comparison to X_train, y_train to ensure no overfitting is taking place.
         """
-        if (X_train is not None) and (y_train is not None):
-            plot_pr_curve(self.best_model, X_test, y_test, X_train, y_train)
-            plot_roc_curve(self.best_model, X_test, y_test, X_train, y_train)
+        best_model = self.load_model(self.model_dir)
 
-        y_pred = network_predictions(self.best_model, X_test)
+        if (X_train is not None) and (y_train is not None):
+            plot_pr_curve(best_model, X_test, y_test, X_train, y_train)
+            plot_roc_curve(best_model, X_test, y_test, X_train, y_train)
+
+        y_pred = network_predictions(best_model, X_test)
         return classification_metrics(y_test, y_pred)
 
     def save_model(self):
         """Saves Q-network as pickle to `model_dir`."""
         with open(self.model_dir + ".pkl", "wb") as f:  # Save Q-network as pickle
-            pickle.dump(self.best_model, f)
+            pickle.dump(self.agent._target_q_network, f)
 
     @staticmethod
     def load_model(fp: str):

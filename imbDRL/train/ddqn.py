@@ -170,6 +170,8 @@ class TrainDDQN(ABC):
         assert self.compiled, "Model must be compiled with model.compile_model() before training."
 
         # Warmup period, fill memory with random actions
+        if self.progressbar:
+            print(f"Collecting data for {self.warmup_episodes} episodes... This might take a few minutes...")
         self.collect_data(self.random_policy, self.warmup_episodes)
 
         self.dataset = self.replay_buffer.as_dataset(sample_batch_size=self.batch_size, num_steps=2,
