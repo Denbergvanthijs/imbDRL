@@ -1,12 +1,6 @@
 import imbDRL.data as data
 import numpy as np
 import pytest
-from imbDRL.environments import ClassifyEnv
-from tf_agents.environments.tf_py_environment import TFPyEnvironment
-from tf_agents.policies.random_tf_policy import RandomTFPolicy
-from tf_agents.replay_buffers.tf_uniform_replay_buffer import \
-    TFUniformReplayBuffer
-from tf_agents.trajectories import trajectory
 
 
 def test_load_image():
@@ -225,51 +219,3 @@ def test_imbalance_data():
     y = np.concatenate([np.ones(50), np.zeros(50)])
     X, y = data.imbalance_data(X, y, [1], [0])
     assert [(100, ), (100, ), 50] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_rate, 50/50(=1) is new imb_rate
-
-
-def test_collect_step():
-    """Tests imbDRL.data.collect_step."""
-    X = np.arange(10, dtype=np.float32)
-    y = np.ones(10, dtype=np.int32)  # All labels are positive
-
-    env = TFPyEnvironment(ClassifyEnv(X, y, 0.2))
-    policy = RandomTFPolicy(env.time_step_spec(), env.action_spec())
-    trajectory_spec = trajectory.from_transition(env.time_step_spec(), policy.policy_step_spec, env.time_step_spec())
-    buffer = TFUniformReplayBuffer(data_spec=trajectory_spec,
-                                   batch_size=1,
-                                   max_length=10)
-
-    assert buffer.num_frames() == 0
-    data.collect_step(env, policy, buffer)
-    assert buffer.num_frames() == 1
-
-    data.collect_step(env, policy, buffer)
-    assert buffer.num_frames() == 2
-
-    ds = buffer.as_dataset(single_deterministic_pass=True)
-    for i in ds.as_numpy_iterator():
-        assert i[0].observation in X
-        assert i[0].action in (0, 1)
-
-
-def test_collect_data():
-    """Tests imbDRL.data.collect_data."""
-    X = np.arange(10, dtype=np.float32)
-    y = np.ones(10, dtype=np.int32)  # All labels are positive
-
-    env = TFPyEnvironment(ClassifyEnv(X, y, 0.2))
-    policy = RandomTFPolicy(env.time_step_spec(), env.action_spec())
-    trajectory_spec = trajectory.from_transition(env.time_step_spec(), policy.policy_step_spec, env.time_step_spec())
-    buffer = TFUniformReplayBuffer(data_spec=trajectory_spec,
-                                   batch_size=1,
-                                   max_length=10)
-
-    assert buffer.num_frames() == 0
-    data.collect_data(env, policy, buffer, 1)
-    assert buffer.num_frames() == 1
-
-    data.collect_data(env, policy, buffer, 3, progressbar=True)
-    assert buffer.num_frames() == 4
-
-    data.collect_data(env, policy, buffer, 12)
-    assert buffer.num_frames() == 10

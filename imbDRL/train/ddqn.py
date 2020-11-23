@@ -3,9 +3,10 @@ from datetime import datetime
 
 import numpy as np
 import tensorflow as tf
-from imbDRL.data import collect_data
+from tensorflow import data
 from tensorflow.keras.optimizers import Adam
 from tf_agents.agents.dqn.dqn_agent import DdqnAgent
+from tf_agents.drivers.dynamic_step_driver import DynamicStepDriver
 from tf_agents.networks.q_network import QNetwork
 from tf_agents.policies.random_tf_policy import RandomTFPolicy
 from tf_agents.replay_buffers.tf_uniform_replay_buffer import \
@@ -72,7 +73,7 @@ class TrainDDQN(ABC):
         if val_every is not None:
             self.val_every = val_every  # Validate the policy every `VAL_EVERY` episodes
         else:
-            self.val_every = episodes // 50
+            self.val_every = episodes // min(50, self.episodes)  # Can't validate the model 50 times if self.episodes < 50
 
         self.lr = lr  # Learning Rate
         self.gamma = gamma  # Discount factor
@@ -169,11 +170,10 @@ class TrainDDQN(ABC):
         assert self.compiled, "Model must be compiled with model.compile_model() before training."
 
         # Warmup period, fill memory with random actions
-        collect_data(self.train_env, self.random_policy, self.replay_buffer, self.warmup_episodes, progressbar=self.progressbar)
+        self.collect_data(self.random_policy, self.warmup_episodes)
 
         self.dataset = self.replay_buffer.as_dataset(sample_batch_size=self.batch_size, num_steps=2,
-                                                     num_parallel_calls=tf.data.experimental.AUTOTUNE).prefetch(
-                                                         tf.data.experimental.AUTOTUNE)
+                                                     num_parallel_calls=data.experimental.AUTOTUNE).prefetch(data.experimental.AUTOTUNE)
         self.iterator = iter(self.dataset)
         self.agent.train = common.function(self.agent.train)  # Optimalization
 
@@ -181,7 +181,8 @@ class TrainDDQN(ABC):
         for _ in tqdm(range(self.episodes), disable=(not self.progressbar)):
             # Collect a few steps using collect_policy and save to `replay_buffer`
             # TODO: determine which policy to use: collect_policy or policy
-            collect_data(self.train_env, self.agent.collect_policy, self.replay_buffer, self.collect_steps_per_episode)
+            # TODO: determine if collected data is saved in the buffer and then passed to self.dataset
+            self.collect_data(self.agent.collect_policy, self.collect_steps_per_episode)
 
             # Sample a batch of data from `replay_buffer` and update the agent's network
             experiences, _ = next(self.iterator)
@@ -194,6 +195,13 @@ class TrainDDQN(ABC):
                 self.collect_metrics(*args)
 
         self.save_model()
+
+    def collect_data(self, policy, steps: int) -> None:
+        """Collect data for a number of steps. Mainly used for warmup period."""
+        op = DynamicStepDriver(self.train_env,
+                               policy,
+                               observers=[self.replay_buffer.add_batch],
+                               num_steps=steps).run()
 
     @abstractmethod
     def collect_metrics(self):

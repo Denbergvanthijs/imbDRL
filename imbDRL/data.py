@@ -6,8 +6,6 @@ from pandas import read_csv
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.datasets import cifar10, fashion_mnist, imdb, mnist
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tf_agents.trajectories import trajectory
-from tqdm import tqdm
 
 TrainTestData = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 TrainTestValData = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
@@ -299,19 +297,3 @@ def imbalance_data(X: np.ndarray, y: np.ndarray, min_class: list, maj_class: lis
     y_imb = np.concatenate((np.zeros(X_maj_len), np.ones(X_imb.shape[0] - X_maj_len))).astype(np.int32)
 
     return X_imb, y_imb
-
-
-def collect_step(environment, policy, buffer) -> None:
-    """Data collection for 1 step."""
-    time_step = environment.current_time_step()
-    action_step = policy.action(time_step)
-    next_time_step = environment.step(action_step.action)
-    traj = trajectory.from_transition(time_step, action_step, next_time_step)
-
-    buffer.add_batch(traj)
-
-
-def collect_data(env, policy, buffer, steps: int, progressbar: bool = False) -> None:
-    """Collect data for a number of steps. Mainly used for warmup period."""
-    for _ in tqdm(range(steps), disable=(not progressbar)):
-        collect_step(env, policy, buffer)
