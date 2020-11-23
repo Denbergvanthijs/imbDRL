@@ -35,3 +35,11 @@ Example scripts on the [MNIST](http://yann.lecun.com/exdb/mnist/), [IMDB](http:/
 ## TensorBoard
 
 To enable [TensorBoard](https://www.tensorflow.org/tensorboard), run ```tensorboard --logdir logs```.
+
+## Tests and linting
+
+Extra arguments are handled with the `./tox.ini` file.
+
+* Pytest: `python -m pytest`
+* Flake8: `flake8`
+* Coverage can be found in the `./htmlcov` folder
