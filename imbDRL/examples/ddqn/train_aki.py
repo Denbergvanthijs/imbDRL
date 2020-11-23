@@ -12,7 +12,7 @@ target_model_update = episodes // 100  # Period to overwrite the target Q-networ
 target_update_tau = 0.025  # Soften the target model update
 
 conv_layers = None  # Convolutional layers
-dense_layers = (512, 256, )  # Dense layers
+dense_layers = (256, 256, )  # Dense layers
 dropout_layers = (0.2, 0.2, )  # Dropout layers
 
 lr = 0.0015  # Learning rate
@@ -20,7 +20,7 @@ gamma = 0.0  # Discount factor
 min_epsilon = 0.05  # Minimal and final chance of choosing random action
 decay_episodes = episodes // 2  # Number of episodes to decay from 1.0 to `min_epsilon`
 
-imb_rate = 0.2132  # Imbalance rate
+imb_rate = 0.2119  # Imbalance rate
 min_class = [1]  # Minority classes
 maj_class = [0]  # Majority classes
 X_train, y_train, X_test, y_test, = load_aki(normalization=True)
@@ -36,4 +36,4 @@ model.compile_model(train_env, conv_layers, dense_layers, dropout_layers)
 model.train(X_val, y_val)
 stats = model.evaluate(X_test, y_test, X_train, y_train)
 print(rounded_dict(stats))
-# {'Gmean': 0.775022, 'Fdot5': 0.467811, 'F1': 0.548939, 'F2': 0.664111, 'TP': 1074, 'TN': 5073, 'FP': 1448, 'FN': 317}
+# {'Gmean': 0.740975, 'F1': 0.516029, 'Sensitivity': 0.750562, 'Specificity': 0.73151, 'TP': 668, 'TN': 2809, 'FP': 1031, 'FN': 222}
