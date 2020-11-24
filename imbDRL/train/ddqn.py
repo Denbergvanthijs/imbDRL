@@ -171,7 +171,7 @@ class TrainDDQN(ABC):
 
         # Warmup period, fill memory with random actions
         if self.progressbar:
-            print(f"Collecting data for {self.warmup_episodes} episodes... This might take a few minutes...")
+            print(f"\033[92mCollecting data for {self.warmup_episodes} episodes... This might take a few minutes...\033[0m")
         self.collect_data(self.random_policy, self.warmup_episodes)
 
         self.dataset = self.replay_buffer.as_dataset(sample_batch_size=self.batch_size, num_steps=2,
@@ -195,8 +195,6 @@ class TrainDDQN(ABC):
                     tf.summary.scalar("train_loss", train_loss, step=self.global_episode)
 
                 self.collect_metrics(*args)
-
-        self.save_model()
 
     def collect_data(self, policy, steps: int) -> None:
         """Collect data for a number of steps. Mainly used for warmup period."""
