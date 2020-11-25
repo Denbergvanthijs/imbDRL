@@ -3,10 +3,12 @@ from datetime import datetime
 
 import numpy as np
 import tensorflow as tf
+from imbDRL.environments import ClassifyEnv
 from tensorflow import data
 from tensorflow.keras.optimizers import Adam
 from tf_agents.agents.dqn.dqn_agent import DdqnAgent
 from tf_agents.drivers.dynamic_step_driver import DynamicStepDriver
+from tf_agents.environments.tf_py_environment import TFPyEnvironment
 from tf_agents.networks.q_network import QNetwork
 from tf_agents.policies.random_tf_policy import RandomTFPolicy
 from tf_agents.replay_buffers.tf_uniform_replay_buffer import \
@@ -64,17 +66,6 @@ class TrainDDQN(ABC):
         self.warmup_episodes = warmup_episodes  # Amount of warmup steps before training
         self.batch_size = batch_size  # Batch size of Replay Memory
         self.collect_steps_per_episode = collect_steps_per_episode  # Amount of steps to collect data each episode
-
-        if memory_length is not None:
-            self.memory_length = memory_length  # Max Replay Memory length
-        else:
-            self.memory_length = warmup_episodes
-
-        if val_every is not None:
-            self.val_every = val_every  # Validate the policy every `VAL_EVERY` episodes
-        else:
-            self.val_every = episodes // min(50, self.episodes)  # Can't validate the model 50 times if self.episodes < 50
-
         self.lr = lr  # Learning Rate
         self.gamma = gamma  # Discount factor
         self.min_epsilon = min_epsilon  # Minimal chance of choosing random action
@@ -84,8 +75,19 @@ class TrainDDQN(ABC):
         self.progressbar = progressbar  # Enable or disable the progressbar for collecting data and training
         self.n_step_update = n_step_update
         self.gradient_clipping = gradient_clipping  # Clip the loss
-
+        self.compiled = False
         NOW = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        if memory_length is not None:
+            self.memory_length = memory_length  # Max Replay Memory length
+        else:
+            self.memory_length = warmup_episodes
+
+        if val_every is not None:
+            self.val_every = val_every  # Validate the policy every `VAL_EVERY` episodes
+        else:
+            self.val_every = self.episodes // min(50, self.episodes)  # Can't validate the model 50 times if self.episodes < 50
+
         if model_dir is None:
             self.model_dir = "./models/" + NOW
         else:
@@ -93,19 +95,9 @@ class TrainDDQN(ABC):
 
         if log_dir is None:
             self.log_dir = "./logs/" + NOW
-        else:
-            self.log_dir = log_dir
-
         self.writer = tf.summary.create_file_writer(self.log_dir)
-        self.global_episode = tf.Variable(0, name="global_episode", dtype=np.int64, trainable=False)  # Global train episode counter
 
-        # Custom epsilon decay: https://github.com/tensorflow/agents/issues/339
-        self.epsilon_decay = tf.compat.v1.train.polynomial_decay(
-            1.0, self.global_episode, self.decay_episodes, end_learning_rate=self.min_epsilon)
-        self.optimizer = Adam(learning_rate=self.lr)
-        self.compiled = False
-
-    def compile_model(self, train_env, conv_layers: tuple, dense_layers: tuple, dropout_layers: tuple,
+    def compile_model(self, X_train, y_train, imb_rate, conv_layers: tuple, dense_layers: tuple, dropout_layers: tuple,
                       loss_fn=common.element_wise_squared_loss) -> None:
         """Initializes the Q-network, agent, collect policy and replay buffer.
 
@@ -129,28 +121,28 @@ class TrainDDQN(ABC):
             if not isinstance(layer, (tuple, list, type(None))):
                 raise TypeError(f"Layer {layer=} must be tuple or None, not {type(layer)}.")
 
-        self.train_env = train_env
-        self.conv_layers = conv_layers
-        self.dense_layers = dense_layers
-        self.dropout_layers = dropout_layers
-        self.loss_fn = loss_fn
+        self.train_env = TFPyEnvironment(ClassifyEnv(X_train, y_train, imb_rate))
+        self.global_episode = tf.Variable(0, name="global_episode", dtype=np.int64, trainable=False)  # Global train episode counter
+        # Custom epsilon decay: https://github.com/tensorflow/agents/issues/339
+        epsilon_decay = tf.compat.v1.train.polynomial_decay(
+            1.0, self.global_episode, self.decay_episodes, end_learning_rate=self.min_epsilon)
 
-        self.q_net = QNetwork(self.train_env.observation_spec(),
-                              self.train_env.action_spec(),
-                              conv_layer_params=self.conv_layers,
-                              fc_layer_params=self.dense_layers,
-                              dropout_layer_params=self.dropout_layers)
+        q_net = QNetwork(self.train_env.observation_spec(),
+                         self.train_env.action_spec(),
+                         conv_layer_params=conv_layers,
+                         fc_layer_params=dense_layers,
+                         dropout_layer_params=dropout_layers)
 
         self.agent = DdqnAgent(self.train_env.time_step_spec(),
                                self.train_env.action_spec(),
-                               q_network=self.q_net,
-                               optimizer=self.optimizer,
+                               q_network=q_net,
+                               optimizer=Adam(learning_rate=self.lr),
                                td_errors_loss_fn=loss_fn,
                                train_step_counter=self.global_episode,
                                target_update_period=self.target_model_update,
                                target_update_tau=self.target_update_tau,
                                gamma=self.gamma,
-                               epsilon_greedy=self.epsilon_decay,
+                               epsilon_greedy=epsilon_decay,
                                n_step_update=self.n_step_update,
                                gradient_clipping=self.gradient_clipping)
         self.agent.initialize()
@@ -160,13 +152,14 @@ class TrainDDQN(ABC):
         self.replay_buffer = TFUniformReplayBuffer(data_spec=self.agent.collect_data_spec,
                                                    batch_size=self.train_env.batch_size,
                                                    max_length=self.memory_length)
+
         self.warmup_driver = DynamicStepDriver(self.train_env,
                                                self.random_policy,
                                                observers=[self.replay_buffer.add_batch],
                                                num_steps=self.warmup_episodes)
 
         self.collect_driver = DynamicStepDriver(self.train_env,
-                                                self.agent.collect_policy,
+                                                self.random_policy,
                                                 observers=[self.replay_buffer.add_batch],
                                                 num_steps=self.collect_steps_per_episode)
 
@@ -188,20 +181,19 @@ class TrainDDQN(ABC):
         if self.progressbar:
             print(f"\033[92mCollecting data for {self.warmup_episodes:_} episodes... This might take a few minutes...\033[0m")
         self.warmup_driver.run(time_step=None, policy_state=self.random_policy.get_initial_state(self.train_env.batch_size))
+        print(f"\033[92m{self.replay_buffer.num_frames():_} frames collected!\033[0m")
 
         dataset = self.replay_buffer.as_dataset(sample_batch_size=self.batch_size, num_steps=self.n_step_update + 1,
                                                 num_parallel_calls=data.experimental.AUTOTUNE).prefetch(data.experimental.AUTOTUNE)
         iterator = iter(dataset)
 
         ts = None
-        policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
-
-        self.collect_metrics(*args)  # Initial collection for step 0
-        for _ in tqdm(range(self.episodes), disable=(not self.progressbar)):
+        policy_state = self.random_policy.get_initial_state(self.train_env.batch_size)
+        # self.collect_metrics(*args)  # Initial collection for step 0
+        for _ in tqdm(range(self.episodes), disable=(not self.progressbar), desc="Training the DDQN"):
             # Collect a few steps using collect_policy and save to `replay_buffer`
-            # TODO: determine which policy to use: collect_policy or policy
-            # TODO: determine if collected data is saved in the buffer and then passed to self.dataset
             ts, policy_state = self.collect_driver.run(time_step=ts, policy_state=policy_state)
+            print(self.replay_buffer.num_frames())
 
             # Sample a batch of data from `replay_buffer` and update the agent's network
             experiences, _ = next(iterator)
