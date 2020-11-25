@@ -11,21 +11,22 @@ from tf_agents.policies.policy_saver import PolicySaver
 class TrainCustomDDQN(TrainDDQN):
     """Class for the custom training environment."""
 
-    def collect_metrics(self, X_val, y_val):
+    def collect_metrics(self, X_val, y_val, save_best: str = None):
         """Collects metrics using the trained Q-network."""
         y_pred = network_predictions(self.agent._target_q_network, X_val)
         stats = classification_metrics(y_val, y_pred)
         avgQ = np.mean(np.max(self.agent._target_q_network(X_val)[0].numpy(), axis=1))  # Max action for each x in X
 
-        if not hasattr(self, 'best_f1'):  # If no best model yet
-            self.best_f1 = 0.0
+        if save_best is not None:
+            if not hasattr(self, 'best_score'):  # If no best model yet
+                self.best_score = 0.0
 
-        if stats.get("F1") >= self.best_f1:  # Overwrite best model
-            self.save_model()  # Saving directly to avoid shallow copy without trained weights
-            self.best_f1 = stats.get("F1")
+            if stats.get(save_best) >= self.best_score:  # Overwrite best model
+                self.save_model()  # Saving directly to avoid shallow copy without trained weights
+                self.best_score = stats.get(save_best)
 
         with self.writer.as_default():
-            tf.summary.scalar("AverageQ", avgQ, step=self.global_episode)
+            tf.summary.scalar("AverageQ", avgQ, step=self.global_episode)  # Average Q-value for this epoch
 
             for k, v in stats.items():
                 tf.summary.scalar(k, v, step=self.global_episode)
@@ -35,13 +36,16 @@ class TrainCustomDDQN(TrainDDQN):
         Final evaluation of trained Q-network with X_test and y_test.
         Optional PR and ROC curve comparison to X_train, y_train to ensure no overfitting is taking place.
         """
-        best_model = self.load_model(self.model_dir)
+        if hasattr(self, 'best_score'):
+            model = self.load_model(self.model_dir)  # Load best saved model
+        else:
+            model = self.agent._target_q_network  # Load latest target model
 
         if (X_train is not None) and (y_train is not None):
-            plot_pr_curve(best_model, X_test, y_test, X_train, y_train)
-            plot_roc_curve(best_model, X_test, y_test, X_train, y_train)
+            plot_pr_curve(model, X_test, y_test, X_train, y_train)
+            plot_roc_curve(model, X_test, y_test, X_train, y_train)
 
-        y_pred = network_predictions(best_model, X_test)
+        y_pred = network_predictions(model, X_test)
         return classification_metrics(y_test, y_pred)
 
     def save_model(self):
