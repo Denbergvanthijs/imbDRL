@@ -207,7 +207,8 @@ def load_aki(fp_train: str = "./data/aki0.csv", fp_test: str = "./data/aki1.csv"
 
 
 def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndarray, y_test: np.ndarray, min_classes: list,
-                       maj_classes: list, imb_rate: float = None, val_frac: float = 0.25, print_stats: bool = True) -> TrainTestValData:
+                       maj_classes: list, imb_rate: float = None, imb_test: bool = True, val_frac: float = 0.25,
+                       print_stats: bool = True) -> TrainTestValData:
     """
     Imbalances data and divides the data into train, test and validation sets.
     The imbalance rate of each individual dataset is approx. the same as the given `imb_rate`.
@@ -227,6 +228,8 @@ def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndar
     :param imb_rate: Imbalance ratio for minority to majority class: len(minority datapoints) / len(majority datapoints)
         If the `imb_rate` is None, data will not be imbalanced and will only be relabeled to 1's and 0's.
     :type  imb_rate: float
+    :param imb_test: Imbalance the test dataset?
+    :type  imb_test: bool
     :param val_frac: Fraction to take from X_train and y_train for X_val and y_val
     :type  val_frac: float
     :param print_stats: Print the imbalance ratio of the imbalanced data?
@@ -240,8 +243,9 @@ def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndar
     if not isinstance(print_stats, bool):
         raise TypeError(f"`print_stats` must be of type `bool`, not {type(print_stats)}.")
 
-    X_train, y_train = imbalance_data(X_train, y_train, min_classes, maj_classes, imb_rate=imb_rate)  # Imbalance the data
-    X_test, y_test = imbalance_data(X_test, y_test, min_classes, maj_classes, imb_rate=imb_rate)
+    X_train, y_train = imbalance_data(X_train, y_train, min_classes, maj_classes, imb_rate=imb_rate)
+    # Only imbalance test-data if imb_test is True
+    X_test, y_test = imbalance_data(X_test, y_test, min_classes, maj_classes, imb_rate=imb_rate if imb_test else None)
 
     # stratify=y_train to ensure class balance is kept between train and validation datasets
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=val_frac, stratify=y_train)
