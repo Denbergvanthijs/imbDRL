@@ -94,8 +94,8 @@ class TrainDDQN(ABC):
             self.model_dir = model_dir
 
         if log_dir is None:
-            self.log_dir = "./logs/" + NOW
-        self.writer = tf.summary.create_file_writer(self.log_dir)
+            log_dir = "./logs/" + NOW
+        self.writer = tf.summary.create_file_writer(log_dir)
 
     def compile_model(self, X_train, y_train, imb_rate, conv_layers: tuple, dense_layers: tuple, dropout_layers: tuple,
                       loss_fn=common.element_wise_squared_loss) -> None:
@@ -193,7 +193,6 @@ class TrainDDQN(ABC):
         for _ in tqdm(range(self.episodes), disable=(not self.progressbar), desc="Training the DDQN"):
             # Collect a few steps using collect_policy and save to `replay_buffer`
             ts, policy_state = self.collect_driver.run(time_step=ts, policy_state=policy_state)
-            print(self.replay_buffer.num_frames())
 
             # Sample a batch of data from `replay_buffer` and update the agent's network
             experiences, _ = next(iterator)

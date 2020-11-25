@@ -35,7 +35,8 @@ X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(
 
 model = TrainCustomDDQN(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes, target_update_tau=target_update_tau,
                         collect_steps_per_episode=collect_steps_per_episode, target_model_update=target_model_update,
-                        n_step_update=n_step_update, batch_size=batch_size, gradient_clipping=gradient_clipping, progressbar=progressbar, memory_length=memory_length)
+                        n_step_update=n_step_update, batch_size=batch_size, gradient_clipping=gradient_clipping,
+                        progressbar=progressbar, memory_length=memory_length)
 
 model.compile_model(X_train, y_train, imb_rate, conv_layers, dense_layers, dropout_layers, loss_fn=loss_fn)
 model.train(X_val, y_val)

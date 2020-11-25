@@ -2,11 +2,7 @@ from datetime import datetime
 
 import numpy as np
 import pytest
-from imbDRL.environments import ClassifyEnv
 from imbDRL.train.ddqn import TrainDDQN
-from tf_agents.environments import suite_gym
-from tf_agents.environments.tf_py_environment import TFPyEnvironment
-from tf_agents.policies.random_tf_policy import RandomTFPolicy
 
 
 class TrainDDQNChild(TrainDDQN):
@@ -36,16 +32,12 @@ def test_TrainDDQN(tmp_path):
     tmp_logs = str(tmp_path / "test_log")
 
     model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5, model_dir=tmp_models, log_dir=tmp_logs)
-    assert model.global_episode == 0
-    assert model.epsilon_decay() == 1.0
     assert model.model_dir == tmp_models
-    assert model.log_dir == tmp_logs
     assert not model.compiled
 
     NOW = datetime.now().strftime("%Y%m%d")  # yyyymmdd
     model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5)
     assert "./models/" + NOW in model.model_dir  # yyyymmdd in yyyymmdd_hhmmss
-    assert "./logs/" + NOW in model.log_dir
 
 
 def test_compile_model(tmp_path):
@@ -54,23 +46,22 @@ def test_compile_model(tmp_path):
     tmp_logs = str(tmp_path / "test_log")
 
     model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5, model_dir=tmp_models, log_dir=tmp_logs)
-    train_env = TFPyEnvironment(suite_gym.load("CartPole-v0"))
 
     with pytest.raises(TypeError) as exc:
-        model.compile_model(train_env, 128, None, None)
+        model.compile_model(np.array([1.], dtype=np.float32), np.array([1.], dtype=np.float32), 0.5, 128, None, None)
     assert "must be tuple or None" in str(exc.value)
 
     with pytest.raises(TypeError) as exc:
-        model.compile_model(train_env, None, 128, None)
+        model.compile_model(np.array([1.], dtype=np.float32), np.array([1.], dtype=np.float32), 0.5, None, 128, None)
     assert "must be tuple or None" in str(exc.value)
 
     with pytest.raises(TypeError) as exc:
-        model.compile_model(train_env, None, None, 128)
+        model.compile_model(np.array([1.], dtype=np.float32), np.array([1.], dtype=np.float32), 0.5, None, None, 128)
     assert "must be tuple or None" in str(exc.value)
 
     model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5, model_dir=tmp_models, log_dir=tmp_logs)
     assert not model.compiled
-    model.compile_model(train_env, None, (128,), None)
+    model.compile_model(np.array([1.], dtype=np.float32), np.array([1.], dtype=np.float32), 0.5, None, (128, ), None)
     assert model.compiled
 
 
@@ -80,51 +71,23 @@ def test_train(tmp_path):
     tmp_logs = str(tmp_path / "test_log")
 
     model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5, model_dir=tmp_models, log_dir=tmp_logs, val_every=2, memory_length=30)
-    train_env = TFPyEnvironment(suite_gym.load("CartPole-v0"))
 
     with pytest.raises(Exception) as exc:
         model.train()
     assert "must be compiled" in str(exc.value)
 
-    model.compile_model(train_env, None, (128,), None)
+    model.compile_model(np.array([1., 1.], dtype=np.float32), np.array([1., 1.], dtype=np.float32), 0.5, None, (128,), None)
     model.train()
     assert model.replay_buffer.num_frames().numpy() >= 10 + 10  # 10 for warmup + 1 for each episode
     assert model.global_episode == 10
-    assert model.epsilon_decay() == 0.1
 
     model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5, model_dir=tmp_models, log_dir=tmp_logs, val_every=2)
-    train_env = TFPyEnvironment(suite_gym.load("CartPole-v0"))
 
     with pytest.raises(Exception) as exc:
         model.train()
     assert "must be compiled" in str(exc.value)
 
-    model.compile_model(train_env, None, (128,), None)
+    model.compile_model(np.array([1., 1.], dtype=np.float32), np.array([1., 1.], dtype=np.float32), 0.5, None, (128,), None)
     model.train()
-    assert model.replay_buffer.num_frames() == 10  # 10 in total since no memory length is defined
+    assert model.replay_buffer.num_frames() >= 10  # 10 in total since no memory length is defined
     assert model.global_episode == 10
-    assert model.epsilon_decay() == 0.1
-
-
-def test_collect_data(tmp_path):
-    """Tests imbDRL.train.ddqn.TrainDDQN.collect_data."""
-    tmp_models = str(tmp_path / "test_model")  # No support for pathLib https://github.com/tensorflow/tensorflow/issues/37357
-    tmp_logs = str(tmp_path / "test_log")
-
-    X = np.arange(10, dtype=np.float32)
-    y = np.ones(10, dtype=np.int32)  # All labels are positive
-
-    env = TFPyEnvironment(ClassifyEnv(X, y, 0.2))
-    policy = RandomTFPolicy(env.time_step_spec(), env.action_spec())
-    model = TrainDDQNChild(10, 10, 0.001, 0.0, 0.1, 5, model_dir=tmp_models, log_dir=tmp_logs, val_every=2)
-    model.compile_model(env, None, (128,), None)
-
-    assert model.replay_buffer.num_frames().numpy() == 0
-    model.collect_data(policy, 1)
-    assert model.replay_buffer.num_frames().numpy() >= 1
-
-    model.collect_data(policy, 3)
-    assert model.replay_buffer.num_frames().numpy() >= 4
-
-    model.collect_data(policy, 12)
-    assert model.replay_buffer.num_frames().numpy() >= 10
