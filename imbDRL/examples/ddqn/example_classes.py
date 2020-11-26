@@ -25,11 +25,9 @@ class TrainCustomDDQN(TrainDDQN):
                 self.save_model()  # Saving directly to avoid shallow copy without trained weights
                 self.best_score = stats.get(save_best)
 
-        with self.writer.as_default():
-            tf.summary.scalar("AverageQ", avgQ, step=self.global_episode)  # Average Q-value for this epoch
-
-            for k, v in stats.items():
-                tf.summary.scalar(k, v, step=self.global_episode)
+        tf.summary.scalar("AverageQ", avgQ, step=self.global_episode)  # Average Q-value for this epoch
+        for k, v in stats.items():
+            tf.summary.scalar(k, v, step=self.global_episode)
 
     def evaluate(self, X_test, y_test, X_train=None, y_train=None):
         """
@@ -37,6 +35,7 @@ class TrainCustomDDQN(TrainDDQN):
         Optional PR and ROC curve comparison to X_train, y_train to ensure no overfitting is taking place.
         """
         if hasattr(self, 'best_score'):
+            print(f"\033[92mBest score: {self.best_score:6f}!\033[0m")
             model = self.load_model(self.model_dir)  # Load best saved model
         else:
             model = self.agent._target_q_network  # Load latest target model

@@ -96,6 +96,7 @@ class TrainDDQN(ABC):
         if log_dir is None:
             log_dir = "./logs/" + NOW
         self.writer = tf.summary.create_file_writer(log_dir)
+        self.writer.set_as_default()
 
     def compile_model(self, X_train, y_train, imb_rate, conv_layers: tuple, dense_layers: tuple, dropout_layers: tuple,
                       loss_fn=common.element_wise_squared_loss) -> None:
@@ -162,6 +163,8 @@ class TrainDDQN(ABC):
                                                 self.random_policy,
                                                 observers=[self.replay_buffer.add_batch],
                                                 num_steps=self.collect_steps_per_episode)
+        self.warmup_driver.run = common.function(self.warmup_driver.run)
+        self.collect_driver.run = common.function(self.collect_driver.run)
 
         self.compiled = True
 
@@ -187,16 +190,21 @@ class TrainDDQN(ABC):
                                                 num_parallel_calls=data.experimental.AUTOTUNE).prefetch(data.experimental.AUTOTUNE)
         iterator = iter(dataset)
 
+        def _train():
+            experiences, _ = next(iterator)
+            return self.agent.train(experiences).loss
+
         ts = None
         policy_state = self.random_policy.get_initial_state(self.train_env.batch_size)
-        # self.collect_metrics(*args)  # Initial collection for step 0
+        _train = common.function(_train)
+
+        self.collect_metrics(*args)  # Initial collection for step 0
         for _ in tqdm(range(self.episodes), disable=(not self.progressbar), desc="Training the DDQN"):
             # Collect a few steps using collect_policy and save to `replay_buffer`
             ts, policy_state = self.collect_driver.run(time_step=ts, policy_state=policy_state)
 
             # Sample a batch of data from `replay_buffer` and update the agent's network
-            experiences, _ = next(iterator)
-            train_loss = self.agent.train(experiences).loss
+            train_loss = _train()
 
             if not self.global_episode % self.val_every:
                 with self.writer.as_default():
