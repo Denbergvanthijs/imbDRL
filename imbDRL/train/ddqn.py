@@ -23,7 +23,7 @@ class TrainDDQN(ABC):
     def __init__(self, episodes: int, warmup_episodes: int, lr: float, gamma: float, min_epsilon: float, decay_episodes: int,
                  model_dir: str = None, log_dir: str = None, batch_size: int = 64, memory_length: int = None,
                  collect_steps_per_episode: int = 1, val_every: int = None, target_model_update: int = 1, target_update_tau: float = 1.0,
-                 progressbar: bool = True, n_step_update: int = 1, gradient_clipping: float = 1.0) -> None:
+                 progressbar: bool = True, n_step_update: int = 1, gradient_clipping: float = 1.0, collect_every: int = 1) -> None:
         """
         Wrapper to make training easier.
         Code is partly based of https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
@@ -50,6 +50,8 @@ class TrainDDQN(ABC):
         :type  memory_length: int
         :param collect_steps_per_episode: Amount of data to collect for Replay Buffer each episiode
         :type  collect_steps_per_episode: int
+        :param collect_every: Step interval to collect data during training
+        :type  collect_every: int
         :param val_every: Validate the model every X episodes using the `collect_metrics()` function
         :type  val_every: int
         :param target_model_update: Update the target Q-network every X episodes
@@ -66,6 +68,7 @@ class TrainDDQN(ABC):
         self.warmup_episodes = warmup_episodes  # Amount of warmup steps before training
         self.batch_size = batch_size  # Batch size of Replay Memory
         self.collect_steps_per_episode = collect_steps_per_episode  # Amount of steps to collect data each episode
+        self.collect_every = collect_every  # Step interval to collect data during training
         self.lr = lr  # Learning Rate
         self.gamma = gamma  # Discount factor
         self.min_epsilon = min_epsilon  # Minimal chance of choosing random action
@@ -183,8 +186,11 @@ class TrainDDQN(ABC):
         # Warmup period, fill memory with random actions
         if self.progressbar:
             print(f"\033[92mCollecting data for {self.warmup_episodes:_} episodes... This might take a few minutes...\033[0m")
+
         self.warmup_driver.run(time_step=None, policy_state=self.random_policy.get_initial_state(self.train_env.batch_size))
-        print(f"\033[92m{self.replay_buffer.num_frames():_} frames collected!\033[0m")
+
+        if self.progressbar:
+            print(f"\033[92m{self.replay_buffer.num_frames():_} frames collected!\033[0m")
 
         dataset = self.replay_buffer.as_dataset(sample_batch_size=self.batch_size, num_steps=self.n_step_update + 1,
                                                 num_parallel_calls=data.experimental.AUTOTUNE).prefetch(data.experimental.AUTOTUNE)
@@ -199,9 +205,12 @@ class TrainDDQN(ABC):
         _train = common.function(_train)
 
         self.collect_metrics(*args)  # Initial collection for step 0
-        for _ in tqdm(range(self.episodes), disable=(not self.progressbar), desc="Training the DDQN"):
-            # Collect a few steps using collect_policy and save to `replay_buffer`
-            ts, policy_state = self.collect_driver.run(time_step=ts, policy_state=policy_state)
+        pbar = tqdm(total=self.episodes, disable=(not self.progressbar), desc="Training the DDQN")
+        for _ in range(self.episodes):
+            if not self.global_episode % self.collect_every:
+                # Collect a few steps using collect_policy and save to `replay_buffer`
+                ts, policy_state = self.collect_driver.run(time_step=ts, policy_state=policy_state)
+                pbar.update(self.collect_every)  # More stable TQDM updates, collecting could take some time
 
             # Sample a batch of data from `replay_buffer` and update the agent's network
             train_loss = _train()
@@ -211,6 +220,7 @@ class TrainDDQN(ABC):
                     tf.summary.scalar("train_loss", train_loss, step=self.global_episode)
 
                 self.collect_metrics(*args)
+        pbar.close()
 
     @abstractmethod
     def collect_metrics(self):
