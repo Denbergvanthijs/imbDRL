@@ -5,7 +5,6 @@ import tensorflow as tf
 from imbDRL.metrics import (classification_metrics, network_predictions,
                             plot_pr_curve, plot_roc_curve)
 from imbDRL.train.ddqn import TrainDDQN
-from tf_agents.policies.policy_saver import PolicySaver
 
 
 class TrainCustomDDQN(TrainDDQN):
@@ -58,39 +57,3 @@ class TrainCustomDDQN(TrainDDQN):
         with open(fp + ".pkl", "rb") as f:  # Load the Q-network
             network = pickle.load(f)
         return network
-
-
-class TrainCartPole(TrainDDQN):
-    """Class for the CartPole environment."""
-
-    def collect_metrics(self, val_env, val_episodes: int):
-        """Calculates the average return for `val_episodes` using the trained policy."""
-        total_return = 0.0
-        for _ in range(val_episodes):
-            time_step = val_env.reset()
-            episode_return = 0.0
-
-            while not time_step.is_last():
-                action_step = self.agent.policy.action(time_step)
-                time_step = val_env.step(action_step.action)
-                episode_return += time_step.reward
-            total_return += episode_return
-
-        avg_return = total_return // val_episodes
-
-        with self.writer.as_default():
-            tf.summary.scalar("avg_return", avg_return.numpy()[0], step=self.global_episode)
-
-    def evaluate(self, test_env, test_episodes: int):
-        """Final evaluation of policy."""
-        return self.collect_metrics(test_env, test_episodes)
-
-    def save_model(self):
-        """Saves the policy to `model_dir`."""
-        saver = PolicySaver(self.agent.policy)
-        saver.save(self.model_dir)
-
-    @staticmethod
-    def load_model(fp: str):
-        """Loads a saved policy from given filepath."""
-        return tf.saved_model.load(fp)

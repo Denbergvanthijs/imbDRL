@@ -24,9 +24,9 @@ Example scripts on the [MNIST](http://yann.lecun.com/exdb/mnist/), [IMDB](http:/
 ## Getting started
 
 * For the DDQN examples:
-  * `python .\imbDRL\examples\ddqn\train_cartpole.py`
   * `python .\imbDRL\examples\ddqn\train_credit.py`
   * `python .\imbDRL\examples\ddqn\train_image.py`
+  * `python .\imbDRL\examples\ddqn\train_imdb.py`
 * For the Bandit examples:
   * `python .\imbDRL\examples\bandit\train_bandit_credit.py`
   * `python .\imbDRL\examples\bandit\train_bandit_image.py`
