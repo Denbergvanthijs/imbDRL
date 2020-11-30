@@ -4,6 +4,7 @@ from typing import Tuple
 import numpy as np
 from pandas import read_csv
 from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
 from tensorflow.keras.datasets import cifar10, fashion_mnist, imdb, mnist
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
@@ -266,8 +267,6 @@ def imbalance_data(X: np.ndarray, y: np.ndarray, min_class: list, maj_class: lis
     (Possibly) decrease minority rows to match the imbalance rate.
     If initial imb_rate of dataset is lower than given `imb_rate`, the imb_rate will not be changed.
     If the `imb_rate` is None, data will not be imbalanced and will only be relabeled to 1's and 0's.
-
-    Note: Data will not be shuffled
     """
     if not isinstance(X, np.ndarray):
         raise TypeError(f"`X` must be of type `np.ndarray` not {type(X)}")
@@ -299,5 +298,6 @@ def imbalance_data(X: np.ndarray, y: np.ndarray, min_class: list, maj_class: lis
     # Keep all majority rows, decrease minority rows to match `imb_rate`
     X_imb = np.array(X_maj + X_min[:min_len], dtype=np.float32)  # `min_len` could be more than the number of minority rows
     y_imb = np.concatenate((np.zeros(X_maj_len), np.ones(X_imb.shape[0] - X_maj_len))).astype(np.int32)
+    X_imb, y_imb = shuffle(X_imb, y_imb)
 
     return X_imb, y_imb
