@@ -99,7 +99,6 @@ class TrainDDQN(ABC):
         if log_dir is None:
             log_dir = "./logs/" + NOW
         self.writer = tf.summary.create_file_writer(log_dir)
-        self.writer.set_as_default()
 
     def compile_model(self, X_train, y_train, imb_rate, conv_layers: tuple, dense_layers: tuple, dropout_layers: tuple,
                       loss_fn=common.element_wise_squared_loss) -> None:
@@ -163,7 +162,7 @@ class TrainDDQN(ABC):
                                                num_steps=self.warmup_episodes)
 
         self.collect_driver = DynamicStepDriver(self.train_env,
-                                                self.random_policy,
+                                                self.agent.collect_policy,
                                                 observers=[self.replay_buffer.add_batch],
                                                 num_steps=self.collect_steps_per_episode)
         self.warmup_driver.run = common.function(self.warmup_driver.run)
@@ -201,7 +200,7 @@ class TrainDDQN(ABC):
             return self.agent.train(experiences).loss
 
         ts = None
-        policy_state = self.random_policy.get_initial_state(self.train_env.batch_size)
+        policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
         _train = common.function(_train)
 
         self.collect_metrics(*args)  # Initial collection for step 0
@@ -209,7 +208,8 @@ class TrainDDQN(ABC):
         for _ in range(self.episodes):
             if not self.global_episode % self.collect_every:
                 # Collect a few steps using collect_policy and save to `replay_buffer`
-                ts, policy_state = self.collect_driver.run(time_step=ts, policy_state=policy_state)
+                if self.collect_steps_per_episode != 0:
+                    ts, policy_state = self.collect_driver.run(time_step=ts, policy_state=policy_state)
                 pbar.update(self.collect_every)  # More stable TQDM updates, collecting could take some time
 
             # Sample a batch of data from `replay_buffer` and update the agent's network
