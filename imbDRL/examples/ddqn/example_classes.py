@@ -24,9 +24,10 @@ class TrainCustomDDQN(TrainDDQN):
                 self.save_model()  # Saving directly to avoid shallow copy without trained weights
                 self.best_score = stats.get(save_best)
 
-        tf.summary.scalar("AverageQ", avgQ, step=self.global_episode)  # Average Q-value for this epoch
-        for k, v in stats.items():
-            tf.summary.scalar(k, v, step=self.global_episode)
+        with self.writer.as_default():
+            tf.summary.scalar("AverageQ", avgQ, step=self.global_episode)  # Average Q-value for this epoch
+            for k, v in stats.items():
+                tf.summary.scalar(k, v, step=self.global_episode)
 
     def evaluate(self, X_test, y_test, X_train=None, y_train=None):
         """
