@@ -112,3 +112,8 @@ def rounded_dict(d: dict, precision: int = 6) -> dict:
     :rtype: dict
     """
     return {k: round(v, precision) for k, v in d.items()}
+
+
+def imbalance_ratio(y: np.array) -> float:
+    """Calculates imbalance ratio of positive class [1] and negative class [0]."""
+    return (y.sum() / (y.shape - y.sum()))[0]
