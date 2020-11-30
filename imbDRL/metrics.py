@@ -60,7 +60,8 @@ def classification_metrics(y_true: list, y_pred: list) -> dict:
     if len(y_true) != len(y_pred):
         raise ValueError("`X` and `y` must be of same length.")
 
-    TN, FP, FN, TP = confusion_matrix(y_true, y_pred).ravel()
+    # labels=[0, 1] to ensure 4 elements are returned: https://stackoverflow.com/a/46230267
+    TN, FP, FN, TP = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
 
     precision = TP / denom if (denom := TP + FP) else 0  # Positive predictive value
     recall = TP / denom if (denom := TP + FN) else 0  # Sensitivity, True Positive Rate (TPR)
