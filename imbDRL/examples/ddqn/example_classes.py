@@ -5,6 +5,7 @@ import tensorflow as tf
 from imbDRL.metrics import (classification_metrics, network_predictions,
                             plot_pr_curve, plot_roc_curve)
 from imbDRL.train.ddqn import TrainDDQN
+from tf_agents.trajectories import time_step
 
 
 class TrainCustomDDQN(TrainDDQN):
@@ -14,7 +15,9 @@ class TrainCustomDDQN(TrainDDQN):
         """Collects metrics using the trained Q-network."""
         y_pred = network_predictions(self.agent._target_q_network, X_val)
         stats = classification_metrics(y_val, y_pred)
-        avgQ = np.mean(np.max(self.agent._target_q_network(X_val)[0].numpy(), axis=1))  # Max action for each x in X
+
+        avgQ = np.mean(np.max(self.agent._target_q_network(X_val, step_type=tf.constant(
+            [time_step.StepType.FIRST] * X_val.shape[0]), training=False)[0].numpy(), axis=1))  # Max action for each x in X
 
         if save_best is not None:
             if not hasattr(self, 'best_score'):  # If no best model yet

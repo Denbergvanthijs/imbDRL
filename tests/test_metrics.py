@@ -14,7 +14,7 @@ def test_network_predictions():
     assert "`X` must be of type" in str(exc.value)
 
     X = np.array([[1, 2], [2, 1], [3, 4], [4, 3]])
-    y_pred = metrics.network_predictions(lambda x: (tf.convert_to_tensor(x), None), X)
+    y_pred = metrics.network_predictions(lambda x, step_type, training: (tf.convert_to_tensor(x), None), X)
     assert np.array_equal(y_pred, [1, 0, 1, 0])
 
 
@@ -27,7 +27,7 @@ def test_decision_function():
     assert "`X` must be of type" in str(exc.value)
 
     X = np.array([[1, 2], [2, 1], [3, 4], [4, 3], [-1, 0], [-1, -10]])
-    y_pred = metrics.decision_function(lambda x: (tf.convert_to_tensor(x), None), X)
+    y_pred = metrics.decision_function(lambda x, step_type, training: (tf.convert_to_tensor(x), None), X)
     assert np.array_equal(y_pred, [2, 2, 4, 4, 0, -1])
 
 

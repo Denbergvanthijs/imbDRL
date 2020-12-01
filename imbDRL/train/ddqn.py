@@ -10,6 +10,7 @@ from tf_agents.agents.dqn.dqn_agent import DdqnAgent
 from tf_agents.drivers.dynamic_step_driver import DynamicStepDriver
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
 from tf_agents.networks.q_network import QNetwork
+from tf_agents.networks.q_rnn_network import QRnnNetwork
 from tf_agents.policies.random_tf_policy import RandomTFPolicy
 from tf_agents.replay_buffers.tf_uniform_replay_buffer import \
     TFUniformReplayBuffer
@@ -100,8 +101,8 @@ class TrainDDQN(ABC):
             log_dir = "./logs/" + NOW
         self.writer = tf.summary.create_file_writer(log_dir)
 
-    def compile_model(self, X_train, y_train, imb_rate, conv_layers: tuple, dense_layers: tuple, dropout_layers: tuple,
-                      loss_fn=common.element_wise_squared_loss) -> None:
+    def compile_model(self, X_train, y_train, imb_rate, conv_layers: tuple, dense_layers: tuple, dropout_layers: tuple = None,
+                      lstm_layers: tuple = None, loss_fn=common.element_wise_squared_loss, q_net_type: str = None) -> None:
         """Initializes the Q-network, agent, collect policy and replay buffer.
 
         :param train_env: The training environment used by the agent
@@ -114,8 +115,12 @@ class TrainDDQN(ABC):
         :type  dense_layers: tuple
         :param dropout_layers: Tuple of percentage of dropout per each dense layer
         :type  dropout_layers: tuple
+        :param lstm_layers: Tuple of LSTM size per layer
+        :type  lstm_layers: tuple
         :param loss_fn: Callable loss function
         :type  loss_fn: tf.compat.v1.losses
+        :param q_net_type: Default QNetwork or QRnnNetwork
+        :type  q_net_type: str
 
         :return: None
         :rtype: NoneType
@@ -130,11 +135,22 @@ class TrainDDQN(ABC):
         epsilon_decay = tf.compat.v1.train.polynomial_decay(
             1.0, self.global_episode, self.decay_episodes, end_learning_rate=self.min_epsilon)
 
-        q_net = QNetwork(self.train_env.observation_spec(),
-                         self.train_env.action_spec(),
-                         conv_layer_params=conv_layers,
-                         fc_layer_params=dense_layers,
-                         dropout_layer_params=dropout_layers)
+        if q_net_type == "rnn":
+            if dropout_layers is not None:
+                raise ValueError("Dropout layers are not supported for QRnnNetworks")
+            q_net = QRnnNetwork(self.train_env.observation_spec(),
+                                self.train_env.action_spec(),
+                                conv_layer_params=conv_layers,
+                                output_fc_layer_params=dense_layers,
+                                lstm_size=lstm_layers)
+        else:
+            if lstm_layers is not None:
+                raise ValueError("LSTM layers are not supported for QNetworks")
+            q_net = QNetwork(self.train_env.observation_spec(),
+                             self.train_env.action_spec(),
+                             conv_layer_params=conv_layers,
+                             fc_layer_params=dense_layers,
+                             dropout_layer_params=dropout_layers)
 
         self.agent = DdqnAgent(self.train_env.time_step_spec(),
                                self.train_env.action_spec(),
