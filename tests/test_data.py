@@ -97,43 +97,6 @@ def test_load_creditcard(tmp_path):
     assert np.array_equal(credit_data[0][2], np.ones(29, dtype=np.float32))  # Max value
 
 
-def test_load_sepsis(tmp_path):
-    """Tests imbDRL.data.load_sepsis."""
-    cols = "subject_id,hadm_id,sbp,dbp,ph,so2,temp,hr,resp,wbcc,pco2,sepsis\n"
-    row1 = str(list(range(0, 12))).strip("[]") + "\n"
-    row2 = str(list(range(12, 24))).strip("[]") + "\n"
-    row3 = str(list(range(24, 36))).strip("[]") + "\n"
-
-    with pytest.raises(FileNotFoundError) as exc:
-        data.load_sepsis(fp_train=tmp_path / "thisfiledoesnotexist.csv")
-    assert "fp_train" in str(exc.value)
-
-    with open(data_file := tmp_path / "data_file.csv", "w") as f:
-        f.writelines([cols, row1, row2, row3])
-
-    with pytest.raises(FileNotFoundError) as exc:
-        data.load_sepsis(fp_train=data_file, fp_test=tmp_path / "thisfiledoesnotexist.csv")
-    assert "fp_test" in str(exc.value)
-
-    with pytest.raises(TypeError) as exc:
-        data.load_sepsis(fp_train=data_file, fp_test=data_file, normalization=1234)
-    assert "must be of type `bool`" in str(exc.value)
-
-    credit_data = data.load_sepsis(fp_train=data_file, fp_test=data_file)
-    assert [x.shape for x in credit_data] == [(3, 8), (3, ), (3, 8), (3, )]
-    assert [x.dtype for x in credit_data] == ["float32", "int32", "float32", "int32"]
-    assert np.array_equal(credit_data[0][0], np.arange(2, 10, dtype=np.float32))  # No normalization
-    assert np.array_equal(credit_data[0][1], np.arange(14, 22, dtype=np.float32))
-    assert np.array_equal(credit_data[0][2], np.arange(26, 34, dtype=np.float32))
-
-    credit_data = data.load_sepsis(fp_train=data_file, fp_test=data_file, normalization=True)
-    assert [x.shape for x in credit_data] == [(3, 8), (3, ), (3, 8), (3, )]
-    assert [x.dtype for x in credit_data] == ["float32", "int32", "float32", "int32"]
-    assert np.array_equal(credit_data[0][0], np.zeros(8, dtype=np.float32))  # Min value
-    assert np.array_equal(credit_data[0][1], np.full(8, 0.5, dtype=np.float32))  # Halfway
-    assert np.array_equal(credit_data[0][2], np.ones(8, dtype=np.float32))  # Max value
-
-
 def test_get_train_test_val(capsys):
     """Tests imbDRL.data.get_train_test_val."""
     X = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
