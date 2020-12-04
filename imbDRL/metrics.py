@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 from sklearn.metrics import (auc, average_precision_score, confusion_matrix,
                              f1_score, precision_recall_curve, roc_curve)
 from tensorflow import constant
@@ -160,4 +161,31 @@ def plot_roc_curve(network, X_test: np.ndarray, y_test: np.ndarray,
     plt.gca().set_aspect('equal', adjustable='box')
     plt.legend(loc="lower right")
     plt.grid(True)
+    plt.show()
+
+
+def plot_confusion_matrix(TP: int, FN: int, FP: int, TN: int) -> None:  # pragma: no cover
+    """Plots confusion matric of given TP, FN, FP, TN.
+
+    :param TP: True Positive
+    :type  TP: int
+    :param FN: False Negative
+    :type  FN: int
+    :param FP: False Positive
+    :type  FP: int
+    :param TN: True Negative
+    :type  TN: int
+
+    :return: None
+    :rtype: NoneType
+    """
+    if not all(isinstance(i, int) for i in (TP, FN, FP, TN)):
+        raise ValueError("Not all arguments are integers.")
+
+    ticklabels = ("Minority", "Majority")
+    sns.heatmap(((TP, FN), (FP, TN)), annot=True, fmt="_d", cmap="viridis", xticklabels=ticklabels, yticklabels=ticklabels)
+
+    plt.title("Confusion matrix")
+    plt.xlabel("Predicted labels")
+    plt.ylabel("True labels")
     plt.show()

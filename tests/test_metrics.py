@@ -63,3 +63,10 @@ def test_classification_metrics():
     stats = metrics.classification_metrics(y_true, y_pred)
     approx = rounded_dict(stats)
     assert approx == {"Gmean": 0.0, "F1": 0.0, "Precision": 0.0, "Recall": 0.0, "TP": 0, "TN": 0, "FP": 6, "FN": 0}
+
+
+def test_plot_confusion_matrix():
+    """Tests imbDRL.utils.plot_confusion_matrix."""
+    with pytest.raises(ValueError) as exc:
+        metrics.plot_confusion_matrix(1, 2, 3, "test")
+    assert "Not all arguments are integers" in str(exc.value)

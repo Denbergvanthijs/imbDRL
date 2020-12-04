@@ -5,13 +5,6 @@ import numpy as np
 import pytest
 
 
-def test_plot_confusion_matrix():
-    """Tests imbDRL.utils.plot_confusion_matrix."""
-    with pytest.raises(ValueError) as exc:
-        utils.plot_confusion_matrix(1, 2, 3, "test")
-    assert "Not all arguments are integers" in str(exc.value)
-
-
 def test_split_csv(tmp_path):
     """Tests imbDRL.utils.split_csv."""
     cols = "V1,V2,Class\n"
