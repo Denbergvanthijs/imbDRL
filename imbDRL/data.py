@@ -250,11 +250,11 @@ def imbalance_data(X: np.ndarray, y: np.ndarray, min_class: list, maj_class: lis
         if value in maj_class:
             X_maj.append(X[i])
 
-    min_len = int((X_maj_len := len(X_maj)) * imb_rate)
+    min_len = int(len(X_maj) * imb_rate)
 
     # Keep all majority rows, decrease minority rows to match `imb_rate`
     X_imb = np.array(X_maj + X_min[:min_len], dtype=np.float32)  # `min_len` could be more than the number of minority rows
-    y_imb = np.concatenate((np.zeros(X_maj_len), np.ones(X_imb.shape[0] - X_maj_len))).astype(np.int32)
+    y_imb = np.concatenate((np.zeros(len(X_maj)), np.ones(X_imb.shape[0] - len(X_maj)))).astype(np.int32)
     X_imb, y_imb = shuffle(X_imb, y_imb)
 
     return X_imb, y_imb

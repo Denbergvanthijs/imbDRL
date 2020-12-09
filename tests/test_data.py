@@ -71,7 +71,8 @@ def test_load_creditcard(tmp_path):
         data.load_creditcard(fp_train=tmp_path / "thisfiledoesnotexist.csv")
     assert "fp_train" in str(exc.value)
 
-    with open(data_file := tmp_path / "data_file.csv", "w") as f:
+    data_file = tmp_path / "data_file.csv"
+    with open(data_file, "w") as f:
         f.writelines([cols, row1, row2, row3])
 
     with pytest.raises(FileNotFoundError) as exc:

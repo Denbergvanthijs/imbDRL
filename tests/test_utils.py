@@ -15,7 +15,8 @@ def test_split_csv(tmp_path):
         utils.split_csv(fp=tmp_path / "thisfiledoesnotexist.csv", fp_dest=tmp_path)
     assert "File at" in str(exc.value)
 
-    with open(data_file := tmp_path / "data_file.csv", "w") as f:
+    data_file = tmp_path / "data_file.csv"
+    with open(data_file, "w") as f:
         f.writelines([cols, row0, row0, row1, row1])
 
     with pytest.raises(ValueError) as exc:

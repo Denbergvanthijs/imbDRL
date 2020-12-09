@@ -66,9 +66,9 @@ def classification_metrics(y_true: list, y_pred: list) -> dict:
     # labels=[0, 1] to ensure 4 elements are returned: https://stackoverflow.com/a/46230267
     TN, FP, FN, TP = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
 
-    precision = TP / denom if (denom := TP + FP) else 0  # Positive predictive value
-    recall = TP / denom if (denom := TP + FN) else 0  # Sensitivity, True Positive Rate (TPR)
-    specificity = TN / denom if (denom := TN + FP) else 0  # Specificity, selectivity, True Negative Rate (TNR)
+    precision = TP / (TP + FP) if TP + FP else 0  # Positive predictive value
+    recall = TP / (TP + FN) if TP + FN else 0  # Sensitivity, True Positive Rate (TPR)
+    specificity = TN / (TN + FP) if TN + FP else 0  # Specificity, selectivity, True Negative Rate (TNR)
 
     G_mean = np.sqrt(recall * specificity)  # Geometric mean of recall and specificity
     F1 = f1_score(y_true, y_pred, zero_division=0)  # Default F-measure

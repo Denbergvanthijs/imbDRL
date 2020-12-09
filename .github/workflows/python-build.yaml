@@ -1,4 +1,4 @@
-# This workflow will install Python dependencies, run tests and lint with Python 3.8
+# This workflow will install Python dependencies, run tests and lint with Python 3.6 and 3.8
 
 name: Build
 
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: [3.6, 3.8] # Test oldest and latest supported python version. Assuming inbetween version would also work.
 
     steps:
       - uses: actions/checkout@v2
