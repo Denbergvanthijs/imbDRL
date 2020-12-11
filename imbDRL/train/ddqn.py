@@ -127,7 +127,7 @@ class TrainDDQN(ABC):
         """
         for layer in (conv_layers, dense_layers, dropout_layers):
             if not isinstance(layer, (tuple, list, type(None))):
-                raise TypeError(f"Layer {layer=} must be tuple or None, not {type(layer)}.")
+                raise TypeError(f"Layer {layer} must be tuple or None, not {type(layer)}.")
 
         self.train_env = TFPyEnvironment(ClassifyEnv(X_train, y_train, imb_rate))
         self.global_episode = tf.Variable(0, name="global_episode", dtype=np.int64, trainable=False)  # Global train episode counter

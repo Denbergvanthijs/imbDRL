@@ -25,9 +25,9 @@ def split_csv(fp: str = "./data/creditcard.csv", fp_dest: str = "./data",
     :rtype: NoneType
     """
     if not os.path.isfile(fp):
-        raise FileNotFoundError(f"File at {fp=} does not exist.")
+        raise FileNotFoundError(f"File at {fp} does not exist.")
     if not os.path.isdir(fp_dest):
-        raise ValueError(f"Directory at {fp_dest=} does not exist.")
+        raise ValueError(f"Directory at {fp_dest} does not exist.")
     if not 0 < test_size < 1:
         raise ValueError(f"{test_size} is not in interval 0 < x < 1.")
 
