@@ -1,46 +1,48 @@
+import os
+
+from imbDRL.agents.ddqn import TrainDDQN
 from imbDRL.data import get_train_test_val, load_image
-from imbDRL.examples.ddqn.example_classes import TrainCustomDDQN
 from imbDRL.utils import rounded_dict
 from tf_agents.utils import common
 
-episodes = 120_000 - 50_000  # Total episodes, 120_000 in original paper, the original code only trains every 4 steps
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # CPU is faster than GPU
+
+episodes = 120_000  # Total number of episodes
 warmup_episodes = 50_000  # Amount of warmup steps to collect data with random policy
 memory_length = 100_000  # Max length of the Replay Memory
-collect_steps_per_episode = 1  # Since train_interval=4 in original code and `episodes` is divided by 4
-target_model_update = 10_000  # Since train_interval=4 in original code and `episodes` is divided by 4, update target model 4x faster
-target_update_tau = 1  # Soften the target model update
-n_step_update = 4
 batch_size = 32
+collect_steps_per_episode = 1000
+collect_every = 1000
+
+target_model_update = 10_000
+target_update_tau = 1
+n_step_update = 4
 
 conv_layers = ((32, (5, 5), 2), (32, (5, 5), 2), )  # Convolutional layers
 dense_layers = (256, )  # Dense layers
 dropout_layers = None  # Dropout layers
 
 lr = 0.00025  # Learning rate
-gamma = 0.5  # Discount factor
-min_epsilon = 0.1  # Minimal and final chance of choosing random action
-decay_episodes = 100_000  # Number of episodes to decay from 1.0 to `min_epsilon`, divided by 4
-gradient_clipping = 1.0
-progressbar = True
+gamma = 0.1  # Discount factor
+min_epsilon = 0.01  # Minimal and final chance of choosing random action
+decay_episodes = 100_000  # Number of episodes to decay from 1.0 to `min_epsilon`
+
 loss_fn = common.element_wise_huber_loss
 
 imb_rate = 0.04  # Imbalance rate
 min_class = [4, 5, 6]  # Minority classes
 maj_class = [7, 8, 9]  # Majority classes
 X_train, y_train, X_test, y_test, = load_image("famnist")
-X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(
-    X_train, y_train, X_test, y_test, min_class, maj_class,
-    imb_rate=imb_rate, imb_test=False, val_frac=0.001)
+X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test, min_class, maj_class,
+                                                                    imb_rate=imb_rate, imb_test=False, val_frac=0.1)
 
-
-model = TrainCustomDDQN(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes, target_update_tau=target_update_tau,
-                        collect_steps_per_episode=collect_steps_per_episode, target_model_update=target_model_update,
-                        n_step_update=n_step_update, batch_size=batch_size, gradient_clipping=gradient_clipping,
-                        progressbar=progressbar, memory_length=memory_length)
+model = TrainDDQN(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes, target_model_update=target_model_update,
+                  target_update_tau=target_update_tau, batch_size=batch_size, collect_steps_per_episode=collect_steps_per_episode,
+                  memory_length=memory_length, collect_every=collect_every, n_step_update=n_step_update)
 
 model.compile_model(X_train, y_train, imb_rate, conv_layers, dense_layers, dropout_layers, loss_fn=loss_fn)
-model.train(X_val, y_val)
+model.train(X_val, y_val, "Gmean")
+
 stats = model.evaluate(X_test, y_test, X_train, y_train)
 print(rounded_dict(stats))
-# {'Gmean': 0.943227, 'F1': 0.945219, 'Precision': 0.919584, 'Recall': 0.972324, 'TP': 2916, 'TN': 2745, 'FP': 255, 'FN': 83}
-# {'Gmean': 0.911112, 'F1': 0.918146, 'Precision': 0.868093, 'Recall': 0.974325, 'TP': 2922, 'TN': 2556, 'FP': 444, 'FN': 77}
+# {'Gmean': 0.964648, 'F1': 0.964877, 'Precision': 0.959157, 'Recall': 0.970667, 'TP': 2912, 'TN': 2876, 'FP': 124, 'FN': 88}

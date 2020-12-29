@@ -1,23 +1,23 @@
 import numpy as np
-from imbDRL.environments import ClassifyEnv
+from imbDRL.environments.classifierenv import ClassifierEnv
 from tf_agents.environments.utils import validate_py_environment
 
 
-def test_ClassifyEnv():
-    """Tests imbDRL.environments.ClassifyEnv."""
+def test_ClassifierEnv():
+    """Tests imbDRL.environments.classifierenv.ClassifierEnv."""
     X = np.arange(10, dtype=np.float32)
     y = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1], dtype=np.int32)
 
-    env = ClassifyEnv(X, y, 0.2)
+    env = ClassifierEnv(X, y, 0.2)
     validate_py_environment(env, episodes=5)
 
 
 def test_reset():
-    """Tests imbDRL.environments.ClassifyEnv._reset."""
+    """Tests imbDRL.environments.classifierenv.ClassifierEnv._reset."""
     X = np.arange(10, dtype=np.float32)
     y = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1], dtype=np.int32)
 
-    env = ClassifyEnv(X, y, 0.2)
+    env = ClassifierEnv(X, y, 0.2)
     env.reset()
     env.step([1])
     ts_restart = env.reset()
@@ -35,7 +35,7 @@ def test_step():
     X = np.arange(10, dtype=np.float32)
     y = np.ones(10, dtype=np.int32)  # All labels are positive
 
-    env = ClassifyEnv(X, y, 0.2)
+    env = ClassifierEnv(X, y, 0.2)
     env.reset()
     time_step = env.step([1])  # True Positive
     assert time_step.reward == 1
@@ -48,7 +48,7 @@ def test_step():
     X = np.arange(10, dtype=np.float32)
     y = np.zeros(10, dtype=np.int32)  # All labels are negative
 
-    env = ClassifyEnv(X, y, 0.2)
+    env = ClassifierEnv(X, y, 0.2)
     env.reset()
     time_step = env.step([0])  # True Negative
     assert time_step.reward == np.array([0.2], dtype=np.float32)

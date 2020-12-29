@@ -116,9 +116,9 @@ def test_get_train_test_val(capsys):
     assert "must be of type" in str(exc.value)
 
     X_train, y_train, X_test, y_test, X_val, y_val = data.get_train_test_val(X, y, X, y, [1], [0], imb_rate=0.25, print_stats=False)
-    assert X_train.shape == (2, 1, 2, 1)
-    assert X_test.shape == (3, 1, 2, 1)
-    assert X_val.shape == (1, 1, 2, 1)
+    assert X_train.shape == (2, 2)
+    assert X_test.shape == (3, 2)
+    assert X_val.shape == (1, 2)
     assert y_train.shape == (2, )
     assert y_test.shape == (3, )
     assert y_val.shape == (1, )
@@ -177,9 +177,9 @@ def test_imbalance_data():
     X = np.arange(100)
     y = np.concatenate([np.ones(50), np.zeros(50)])
     X, y = data.imbalance_data(X, y, [1], [0], imb_rate=0.2)
-    assert [(60, 1, 1, 1), (60, ), 10] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_rate, 10/50(=0.2) is new imb_rate
+    assert [(60,), (60, ), 10] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_rate, 10/50(=0.2) is new imb_rate
 
     X = np.arange(100)
     y = np.concatenate([np.ones(50), np.zeros(50)])
     X, y = data.imbalance_data(X, y, [1], [0])
-    assert [(100, 1, 1, 1), (100, ), 50] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_rate, 50/50(=1) is new imb_rate
+    assert [(100,), (100, ), 50] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_rate, 50/50(=1) is new imb_rate

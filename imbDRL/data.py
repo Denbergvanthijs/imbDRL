@@ -245,10 +245,10 @@ def imbalance_data(X: np.ndarray, y: np.ndarray, min_class: list, maj_class: lis
     X_min, X_maj = [], []
     for i, value in enumerate(y):
         if value in min_class:
-            X_min.append(np.atleast_3d(X[i]))  # Ensure Width x Height X Channels
+            X_min.append(X[i])
 
         if value in maj_class:
-            X_maj.append(np.atleast_3d(X[i]))
+            X_maj.append(X[i])
 
     min_len = int(len(X_maj) * imb_rate)
 
