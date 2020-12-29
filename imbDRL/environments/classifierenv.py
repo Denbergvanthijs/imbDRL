@@ -4,7 +4,7 @@ from tf_agents.specs.array_spec import ArraySpec, BoundedArraySpec
 from tf_agents.trajectories import time_step as ts
 
 
-class ClassifyEnv(PyEnvironment):
+class ClassifierEnv(PyEnvironment):
     """
     Custom `PyEnvironment` environment for imbalanced classification.
     Based on https://www.tensorflow.org/agents/tutorials/2_environments_tutorial

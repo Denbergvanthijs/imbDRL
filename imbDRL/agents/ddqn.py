@@ -1,28 +1,30 @@
-from abc import ABC, abstractmethod
+import pickle
 from datetime import datetime
 
 import numpy as np
 import tensorflow as tf
-from imbDRL.environments import ClassifyEnv
+from imbDRL.environments.classifierenv import ClassifierEnv
+from imbDRL.metrics import (classification_metrics, network_predictions,
+                            plot_pr_curve, plot_roc_curve)
 from tensorflow import data
 from tensorflow.keras.optimizers import Adam
 from tf_agents.agents.dqn.dqn_agent import DdqnAgent
 from tf_agents.drivers.dynamic_step_driver import DynamicStepDriver
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
 from tf_agents.networks.q_network import QNetwork
-from tf_agents.networks.q_rnn_network import QRnnNetwork
 from tf_agents.policies.random_tf_policy import RandomTFPolicy
 from tf_agents.replay_buffers.tf_uniform_replay_buffer import \
     TFUniformReplayBuffer
+from tf_agents.trajectories import time_step
 from tf_agents.utils import common
 from tqdm import tqdm
 
 
-class TrainDDQN(ABC):
+class TrainDDQN():
     """Wrapper for DDQN training, validation, saving etc."""
 
     def __init__(self, episodes: int, warmup_episodes: int, lr: float, gamma: float, min_epsilon: float, decay_episodes: int,
-                 model_dir: str = None, log_dir: str = None, batch_size: int = 64, memory_length: int = None,
+                 model_path: str = None, log_dir: str = None, batch_size: int = 64, memory_length: int = None,
                  collect_steps_per_episode: int = 1, val_every: int = None, target_model_update: int = 1, target_update_tau: float = 1.0,
                  progressbar: bool = True, n_step_update: int = 1, gradient_clipping: float = 1.0, collect_every: int = 1) -> None:
         """
@@ -41,8 +43,8 @@ class TrainDDQN(ABC):
         :type  min_epsilon: float
         :param decay_episodes: Amount of episodes to decay from 1 to `min_epsilon`
         :type  decay_episodes: int
-        :param model_dir: Location to save the trained models
-        :type  model_dir: str
+        :param model_path: Location to save the trained model
+        :type  model_path: str
         :param log_dir: Location to save the logs, usefull for TensorBoard
         :type  log_dir: str
         :param batch_size: Number of samples in minibatch to train on each step
@@ -92,17 +94,17 @@ class TrainDDQN(ABC):
         else:
             self.val_every = self.episodes // min(50, self.episodes)  # Can't validate the model 50 times if self.episodes < 50
 
-        if model_dir is None:
-            self.model_dir = "./models/" + NOW
+        if model_path is None:
+            self.model_path = "./models/" + NOW + ".pkl"
         else:
-            self.model_dir = model_dir
+            self.model_path = model_path
 
         if log_dir is None:
             log_dir = "./logs/" + NOW
         self.writer = tf.summary.create_file_writer(log_dir)
 
     def compile_model(self, X_train, y_train, imb_rate, conv_layers: tuple, dense_layers: tuple, dropout_layers: tuple = None,
-                      lstm_layers: tuple = None, loss_fn=common.element_wise_squared_loss, q_net_type: str = None) -> None:
+                      loss_fn=common.element_wise_squared_loss) -> None:
         """Initializes the Q-network, agent, collect policy and replay buffer.
 
         :param train_env: The training environment used by the agent
@@ -115,12 +117,8 @@ class TrainDDQN(ABC):
         :type  dense_layers: tuple
         :param dropout_layers: Tuple of percentage of dropout per each dense layer
         :type  dropout_layers: tuple
-        :param lstm_layers: Tuple of LSTM size per layer
-        :type  lstm_layers: tuple
         :param loss_fn: Callable loss function
         :type  loss_fn: tf.compat.v1.losses
-        :param q_net_type: Default QNetwork or QRnnNetwork
-        :type  q_net_type: str
 
         :return: None
         :rtype: NoneType
@@ -129,28 +127,17 @@ class TrainDDQN(ABC):
             if not isinstance(layer, (tuple, list, type(None))):
                 raise TypeError(f"Layer {layer} must be tuple or None, not {type(layer)}.")
 
-        self.train_env = TFPyEnvironment(ClassifyEnv(X_train, y_train, imb_rate))
+        self.train_env = TFPyEnvironment(ClassifierEnv(X_train, y_train, imb_rate))
         self.global_episode = tf.Variable(0, name="global_episode", dtype=np.int64, trainable=False)  # Global train episode counter
         # Custom epsilon decay: https://github.com/tensorflow/agents/issues/339
         epsilon_decay = tf.compat.v1.train.polynomial_decay(
             1.0, self.global_episode, self.decay_episodes, end_learning_rate=self.min_epsilon)
 
-        if q_net_type == "rnn":
-            if dropout_layers is not None:
-                raise ValueError("Dropout layers are not supported for QRnnNetworks")
-            q_net = QRnnNetwork(self.train_env.observation_spec(),
-                                self.train_env.action_spec(),
-                                conv_layer_params=conv_layers,
-                                output_fc_layer_params=dense_layers,
-                                lstm_size=lstm_layers)
-        else:
-            if lstm_layers is not None:
-                raise ValueError("LSTM layers are not supported for QNetworks")
-            q_net = QNetwork(self.train_env.observation_spec(),
-                             self.train_env.action_spec(),
-                             conv_layer_params=conv_layers,
-                             fc_layer_params=dense_layers,
-                             dropout_layer_params=dropout_layers)
+        q_net = QNetwork(self.train_env.observation_spec(),
+                         self.train_env.action_spec(),
+                         conv_layer_params=conv_layers,
+                         fc_layer_params=dense_layers,
+                         dropout_layer_params=dropout_layers)
 
         self.agent = DdqnAgent(self.train_env.time_step_spec(),
                                self.train_env.action_spec(),
@@ -238,23 +225,53 @@ class TrainDDQN(ABC):
                 self.collect_metrics(*args)
         pbar.close()
 
-    @abstractmethod
-    def collect_metrics(self):
-        """*args given in train() will be passed to this function."""
-        raise NotImplementedError
+    def collect_metrics(self, X_val, y_val, save_best: str = None):
+        """Collects metrics using the trained Q-network."""
+        y_pred = network_predictions(self.agent._target_q_network, X_val)
+        stats = classification_metrics(y_val, y_pred)
 
-    @abstractmethod
-    def evaluate(self):
-        """Evaluation function to run after training with seperate test-dataset."""
-        raise NotImplementedError
+        avgQ = np.mean(np.max(self.agent._target_q_network(X_val, step_type=tf.constant(
+            [time_step.StepType.FIRST] * X_val.shape[0]), training=False)[0].numpy(), axis=1))  # Max action for each x in X
 
-    @abstractmethod
+        if save_best is not None:
+            if not hasattr(self, 'best_score'):  # If no best model yet
+                self.best_score = 0.0
+
+            if stats.get(save_best) >= self.best_score:  # Overwrite best model
+                self.save_model()  # Saving directly to avoid shallow copy without trained weights
+                self.best_score = stats.get(save_best)
+
+        with self.writer.as_default():
+            tf.summary.scalar("AverageQ", avgQ, step=self.global_episode)  # Average Q-value for this epoch
+            for k, v in stats.items():
+                tf.summary.scalar(k, v, step=self.global_episode)
+
+    def evaluate(self, X_test, y_test, X_train=None, y_train=None):
+        """
+        Final evaluation of trained Q-network with X_test and y_test.
+        Optional PR and ROC curve comparison to X_train, y_train to ensure no overfitting is taking place.
+        """
+        if hasattr(self, 'best_score'):
+            print(f"\033[92mBest score: {self.best_score:6f}!\033[0m")
+            model = self.load_model(self.model_path)  # Load best saved model
+        else:
+            model = self.agent._target_q_network  # Load latest target model
+
+        if (X_train is not None) and (y_train is not None):
+            plot_pr_curve(model, X_test, y_test, X_train, y_train)
+            plot_roc_curve(model, X_test, y_test, X_train, y_train)
+
+        y_pred = network_predictions(model, X_test)
+        return classification_metrics(y_test, y_pred)
+
     def save_model(self):
-        """Abstract method for saving the model/network/policy to disk."""
-        raise NotImplementedError
+        """Saves Q-network as pickle to `model_path`."""
+        with open(self.model_path, "wb") as f:  # Save Q-network as pickle
+            pickle.dump(self.agent._target_q_network, f)
 
     @staticmethod
-    @abstractmethod
     def load_model(fp: str):
-        """Abstract method for loading the model/network/policy of disk."""
-        raise NotImplementedError
+        """Static method to load Q-network pickle from given filepath."""
+        with open(fp, "rb") as f:  # Load the Q-network
+            network = pickle.load(f)
+        return network
