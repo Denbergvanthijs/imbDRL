@@ -1,8 +1,8 @@
-tensorflow==2.3.1
+tensorflow>=2.3
 tf_agents==0.6.0
+numpy<1.19.4
 gym
 matplotlib
-numpy
 pandas
 seaborn
 sklearn
