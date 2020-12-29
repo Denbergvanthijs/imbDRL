@@ -7,7 +7,7 @@ long_description = (base / "README.md").read_text(encoding="utf-8")
 install_requires = (base / "requirements.txt").read_text(encoding="utf-8").split("\n")[:-1]  # Remove empty string at last index
 
 setup(name="imbDRL",
-      version="2020.11.24.2",
+      version="2020.12.29.1",
       author="Thijs van den Berg",
       author_email="denbergvanthijs@gmail.com",
       description="Imbalanced Classification with Deep Reinforcement Learning.",
@@ -18,8 +18,8 @@ setup(name="imbDRL",
       classifiers=["Programming Language :: Python :: 3",
                    "License :: OSI Approved :: Apache Software License",
                    "Operating System :: OS Independent",
-                   "Environment :: GPU :: NVIDIA CUDA :: 10.1",
+                   "Environment :: GPU :: NVIDIA CUDA",
                    "Topic :: Scientific/Engineering :: Artificial Intelligence"],
       keywords="imbalanced classification, deep reinforcement learning, deep q-network, reward-function, classification, medical",
       install_requires=install_requires,
-      python_requires=">=3.6")
+      python_requires=">=3.7")
