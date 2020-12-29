@@ -63,3 +63,15 @@ def test_rounded_dict():
     """Tests imbDRL.utils.rounded_dict."""
     d = {"A": 10.123456789, "B": 100}
     assert utils.rounded_dict(d) == {"A": 10.123457, "B": 100}
+
+
+def test_imbalance_ratio():
+    """Tests imbDRL.utils.imbalance_ratio."""
+    y = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    assert utils.imbalance_ratio(y) == 0.5
+
+    y = np.array([2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3])
+    assert utils.imbalance_ratio(y, 2, 3) == 0.5
+
+    y = np.array(["a", "a", "a", "a", "a", "b", "b", "b", "b", "b", "b", "b", "b", "b", "b", ])
+    assert utils.imbalance_ratio(y, "a", "b") == 0.5

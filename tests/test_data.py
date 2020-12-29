@@ -33,6 +33,44 @@ def test_load_image():
     assert [x.dtype for x in image_data] == ["float32", "int32", "float32", "int32"]
 
 
+def test_load_csv(tmp_path):
+    """Tests imbDRL.data.load_csv."""
+    cols = "Time,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12,V13,V14,V15,V16,V17,V18,V19,V20,V21,V22,V23,V24,V25,V26,V27,V28,Amount,Class\n"
+    row1 = str(list(range(0, 31))).strip("[]") + "\n"
+    row2 = str(list(range(31, 62))).strip("[]") + "\n"
+    row3 = str(list(range(62, 93))).strip("[]") + "\n"
+
+    with pytest.raises(FileNotFoundError) as exc:
+        data.load_csv(tmp_path / "thisfiledoesnotexist.csv", tmp_path / "thisfiledoesnotexist.csv", "Class", ["Time"])
+    assert "fp_train" in str(exc.value)
+
+    data_file = tmp_path / "data_file.csv"
+    with open(data_file, "w") as f:
+        f.writelines([cols, row1, row2, row3])
+
+    with pytest.raises(FileNotFoundError) as exc:
+        data.load_csv(data_file, tmp_path / "thisfiledoesnotexist.csv", "Class", ["Time"])
+    assert "fp_test" in str(exc.value)
+
+    with pytest.raises(TypeError) as exc:
+        data.load_csv(data_file, data_file, "Class", ["Time"], normalization=1234)
+    assert "must be of type `bool`" in str(exc.value)
+
+    credit_data = data.load_csv(data_file, data_file, "Class", ["Time"], normalization=False)
+    assert [x.shape for x in credit_data] == [(3, 29), (3, ), (3, 29), (3, )]
+    assert [x.dtype for x in credit_data] == ["float32", "int32", "float32", "int32"]
+    assert np.array_equal(credit_data[0][0], np.arange(1, 30, dtype=np.float32))  # No normalization
+    assert np.array_equal(credit_data[0][1], np.arange(32, 61, dtype=np.float32))
+    assert np.array_equal(credit_data[0][2], np.arange(63, 92, dtype=np.float32))
+
+    credit_data = data.load_csv(data_file, data_file, "Class", ["Time"], normalization=True)
+    assert [x.shape for x in credit_data] == [(3, 29), (3, ), (3, 29), (3, )]
+    assert [x.dtype for x in credit_data] == ["float32", "int32", "float32", "int32"]
+    assert np.array_equal(credit_data[0][0], np.zeros(29, dtype=np.float32))  # Min value
+    assert np.array_equal(credit_data[0][1], np.full(29, 0.5, dtype=np.float32))  # Halfway
+    assert np.array_equal(credit_data[0][2], np.ones(29, dtype=np.float32))  # Max value
+
+
 def test_load_imdb():
     """Tests imbDRL.data.load_imdb."""
     # Integer `config`
@@ -58,44 +96,6 @@ def test_load_imdb():
     imdb_data = data.load_imdb()
     assert [x.shape for x in imdb_data] == [(25000, 500), (25000, ), (25000, 500), (25000, )]
     assert [x.dtype for x in imdb_data] == ["int32", "int32", "int32", "int32"]
-
-
-def test_load_creditcard(tmp_path):
-    """Tests imbDRL.data.load_creditcard."""
-    cols = "Time,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12,V13,V14,V15,V16,V17,V18,V19,V20,V21,V22,V23,V24,V25,V26,V27,V28,Amount,Class\n"
-    row1 = str(list(range(0, 31))).strip("[]") + "\n"
-    row2 = str(list(range(31, 62))).strip("[]") + "\n"
-    row3 = str(list(range(62, 93))).strip("[]") + "\n"
-
-    with pytest.raises(FileNotFoundError) as exc:
-        data.load_creditcard(fp_train=tmp_path / "thisfiledoesnotexist.csv")
-    assert "fp_train" in str(exc.value)
-
-    data_file = tmp_path / "data_file.csv"
-    with open(data_file, "w") as f:
-        f.writelines([cols, row1, row2, row3])
-
-    with pytest.raises(FileNotFoundError) as exc:
-        data.load_creditcard(fp_train=data_file, fp_test=tmp_path / "thisfiledoesnotexist.csv")
-    assert "fp_test" in str(exc.value)
-
-    with pytest.raises(TypeError) as exc:
-        data.load_creditcard(fp_train=data_file, fp_test=data_file, normalization=1234)
-    assert "must be of type `bool`" in str(exc.value)
-
-    credit_data = data.load_creditcard(fp_train=data_file, fp_test=data_file)
-    assert [x.shape for x in credit_data] == [(3, 29), (3, ), (3, 29), (3, )]
-    assert [x.dtype for x in credit_data] == ["float32", "int32", "float32", "int32"]
-    assert np.array_equal(credit_data[0][0], np.arange(1, 30, dtype=np.float32))  # No normalization
-    assert np.array_equal(credit_data[0][1], np.arange(32, 61, dtype=np.float32))
-    assert np.array_equal(credit_data[0][2], np.arange(63, 92, dtype=np.float32))
-
-    credit_data = data.load_creditcard(fp_train=data_file, fp_test=data_file, normalization=True)
-    assert [x.shape for x in credit_data] == [(3, 29), (3, ), (3, 29), (3, )]
-    assert [x.dtype for x in credit_data] == ["float32", "int32", "float32", "int32"]
-    assert np.array_equal(credit_data[0][0], np.zeros(29, dtype=np.float32))  # Min value
-    assert np.array_equal(credit_data[0][1], np.full(29, 0.5, dtype=np.float32))  # Halfway
-    assert np.array_equal(credit_data[0][2], np.ones(29, dtype=np.float32))  # Max value
 
 
 def test_get_train_test_val(capsys):

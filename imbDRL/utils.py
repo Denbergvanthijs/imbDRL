@@ -85,6 +85,17 @@ def rounded_dict(d: dict, precision: int = 6) -> dict:
     return {k: round(v, precision) for k, v in d.items()}
 
 
-def imbalance_ratio(y: np.array) -> float:
-    """Calculates imbalance ratio of positive class [1] and negative class [0]."""
-    return (y.sum() / (y.shape - y.sum()))[0]
+def imbalance_ratio(y: np.ndarray, min_classes: list = [1], maj_classes: list = [0]) -> float:
+    """Calculates imbalance ratio of minority class(es) and majority class(es).
+
+    :param y: y-vector with labels.
+    :type  y: np.ndarray
+    :param min_classes: The labels of the minority classes
+    :type  min_classes: list
+    :param maj_classes: The labels of the minority classes
+    :type  maj_classes: list
+
+    :return: The imbalance ratio
+    :rtype: float
+    """
+    return np.isin(y, min_classes).sum() / np.isin(y, maj_classes).sum()

@@ -51,6 +51,49 @@ def load_image(data_source: str) -> TrainTestData:
     return X_train, y_train, X_test, y_test
 
 
+def load_csv(fp_train: str, fp_test: str, label_col: str, drop_cols: list, normalization: bool = False) -> TrainTestData:
+    """
+    Loads any csv-file from local filepaths. Returns X and y for both train and test datasets.
+    Option to normalize the data with min-max normalization.
+    Only csv-files with float32 values for the features and int32 values for the labels supported.
+    Source for dataset: https://mimic-iv.mit.edu/
+
+    :param fp_train: Location of the train csv-file
+    :type  fp_train: str
+    :param fp_test: Location of the test csv-file
+    :type  fp_test: str
+    :param normalization: Normalize the data with min-max normalization?
+    :type  normalization: bool
+
+    :return: Tuple of (X_train, y_train, X_test, y_test) containing original split of train/test
+    :rtype: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+    """
+    if not os.path.isfile(fp_train):
+        raise FileNotFoundError(f"`fp_train` {fp_train} does not exist.")
+    if not os.path.isfile(fp_test):
+        raise FileNotFoundError(f"`fp_test` {fp_test} does not exist.")
+    if not isinstance(normalization, bool):
+        raise TypeError(f"`normalization` must be of type `bool`, not {type(normalization)}")
+
+    X_train = read_csv(fp_train).astype(np.float32)  # DataFrames directly converted to float32
+    X_test = read_csv(fp_test).astype(np.float32)
+
+    y_train = X_train[label_col].astype(np.int32)
+    y_test = X_test[label_col].astype(np.int32)
+    X_train.drop(columns=drop_cols + [label_col], inplace=True)  # Dropping cols and label column
+    X_test.drop(columns=drop_cols + [label_col], inplace=True)
+
+    # Other data sources are already normalized. RGB values are always in range 0 to 255.
+    if normalization:
+        mini, maxi = X_train.min(axis=0), X_train.max(axis=0)
+        X_train -= mini
+        X_train /= maxi - mini
+        X_test -= mini
+        X_test /= maxi - mini
+
+    return X_train.values, y_train.values, X_test.values, y_test.values  # Numpy arrays
+
+
 def load_imdb(config: Tuple[int, int] = (5_000, 500)) -> TrainTestData:
     """Loads the IMDB dataset. Returns X and y for both train and test datasets.
 
@@ -76,92 +119,6 @@ def load_imdb(config: Tuple[int, int] = (5_000, 500)) -> TrainTestData:
     y_test = y_test.astype(np.int32)
 
     return X_train, y_train, X_test, y_test
-
-
-def load_creditcard(fp_train: str = "./data/credit0.csv", fp_test: str = "./data/credit1.csv",
-                    normalization: bool = False) -> TrainTestData:
-    """
-    Loads the Kaggle Credit Card Fraud dataset from local filepaths. Returns X and y for both train and test datasets.
-    Option to normalize the data with min-max normalization.
-    Source for dataset: https://www.kaggle.com/mlg-ulb/creditcardfraud
-
-    :param fp_train: Location of the train csv-file
-    :type  fp_train: str
-    :param fp_test: Location of the test csv-file
-    :type  fp_test: str
-    :param normalization: Normalize the data with min-max normalization?
-    :type  normalization: bool
-
-    :return: Tuple of (X_train, y_train, X_test, y_test) containing original split of train/test
-    :rtype: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
-    """
-    if not os.path.isfile(fp_train):
-        raise FileNotFoundError(f"`fp_train` {fp_train} does not exist.")
-    if not os.path.isfile(fp_test):
-        raise FileNotFoundError(f"`fp_test` {fp_test} does not exist.")
-    if not isinstance(normalization, bool):
-        raise TypeError(f"`normalization` must be of type `bool`, not {type(normalization)}")
-
-    X_train = read_csv(fp_train).astype(np.float32)  # DataFrames directly converted to float32
-    X_test = read_csv(fp_test).astype(np.float32)
-
-    y_train = X_train["Class"].astype(np.int32)  # 1: Fraud/Minority, 0: No fraud/Majority
-    y_test = X_test["Class"].astype(np.int32)
-    X_train.drop(columns=["Time", "Class"], inplace=True)  # Dropping `Time` since future data for the model could have another epoch
-    X_test.drop(columns=["Time", "Class"], inplace=True)
-
-    # Other data sources are already normalized. RGB values are always in range 0 to 255.
-    if normalization:
-        mini, maxi = X_train.min(axis=0), X_train.max(axis=0)
-        X_train -= mini
-        X_train /= maxi - mini
-        X_test -= mini
-        X_test /= maxi - mini
-
-    return X_train.values, y_train.values, X_test.values, y_test.values  # Numpy arrays
-
-
-def load_aki(fp_train: str = "./data/aki0.csv", fp_test: str = "./data/aki1.csv",
-             normalization: bool = False) -> TrainTestData:
-    """
-    Loads the AKI dataset from local filepaths. Returns X and y for both train and test datasets.
-    Option to normalize the data with min-max normalization.
-    Source for dataset: https://mimic-iv.mit.edu/
-
-    :param fp_train: Location of the train csv-file
-    :type  fp_train: str
-    :param fp_test: Location of the test csv-file
-    :type  fp_test: str
-    :param normalization: Normalize the data with min-max normalization?
-    :type  normalization: bool
-
-    :return: Tuple of (X_train, y_train, X_test, y_test) containing original split of train/test
-    :rtype: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
-    """
-    if not os.path.isfile(fp_train):
-        raise FileNotFoundError(f"`fp_train` {fp_train} does not exist.")
-    if not os.path.isfile(fp_test):
-        raise FileNotFoundError(f"`fp_test` {fp_test} does not exist.")
-    if not isinstance(normalization, bool):
-        raise TypeError(f"`normalization` must be of type `bool`, not {type(normalization)}")
-
-    X_train = read_csv(fp_train).astype(np.float32)  # DataFrames directly converted to float32
-    X_test = read_csv(fp_test).astype(np.float32)
-
-    y_train = X_train["aki"].astype(np.int32)  # 1: Sepsis during admission, 0: No sepsis during admission
-    y_test = X_test["aki"].astype(np.int32)
-    X_train.drop(columns=["hadm_id", "aki"], inplace=True)  # Dropping Subject and admission columns
-    X_test.drop(columns=["hadm_id", "aki"], inplace=True)  # Dropping pco2
-
-    # Other data sources are already normalized. RGB values are always in range 0 to 255.
-    if normalization:
-        mini, maxi = X_train.min(axis=0), X_train.max(axis=0)
-        X_train -= mini
-        X_train /= maxi - mini
-        X_test -= mini
-        X_test /= maxi - mini
-
-    return X_train.values, y_train.values, X_test.values, y_test.values  # Numpy arrays
 
 
 def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndarray, y_test: np.ndarray, min_classes: list,
