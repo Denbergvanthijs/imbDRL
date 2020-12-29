@@ -12,7 +12,7 @@ min_class = [1]  # Minority classes, same setup as in original paper
 maj_class = [0]  # Majority classes
 fp_model = "./models/20201229_131626.pkl"
 
-X_train, y_train, X_test, y_test, = load_csv("./data/credit0.csv", "./data/credit1.csv", "Class", ["Time"], normalization=True)
+X_train, y_train, X_test, y_test = load_csv("./data/credit0.csv", "./data/credit1.csv", "Class", ["Time"], normalization=True)
 network = TrainDDQN.load_model(fp_model)
 
 y_pred_train = network_predictions(network, X_train)

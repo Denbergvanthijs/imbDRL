@@ -29,7 +29,7 @@ decay_episodes = 100_000  # Number of episodes to decay from 1.0 to `min_epsilon
 imb_rate = 0.01  # Imbalance rate
 min_class = [2]  # Minority classes
 maj_class = [0, 1, 3, 4, 5, 6, 7, 8, 9]  # Majority classes
-X_train, y_train, X_test, y_test, = load_image("mnist")
+X_train, y_train, X_test, y_test = load_image("mnist")
 X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test,
                                                                     min_class, maj_class, val_frac=0.1, imb_rate=imb_rate, imb_test=False)
 

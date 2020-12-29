@@ -29,7 +29,7 @@ decay_episodes = episodes // 10  # Number of episodes to decay from 1.0 to `min_
 imb_rate = 0.2318  # Imbalance rate
 min_class = [1]  # Minority classes
 maj_class = [0]  # Majority classes
-X_train, y_train, X_test, y_test, = load_csv("./data/aki0.csv", "./data/aki1.csv", "aki", ["hadm_id"], normalization=True)
+X_train, y_train, X_test, y_test = load_csv("./data/aki0.csv", "./data/aki1.csv", "aki", ["hadm_id"], normalization=True)
 X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test,
                                                                     min_class, maj_class, val_frac=0.2)
 

@@ -32,7 +32,7 @@ loss_fn = common.element_wise_huber_loss
 imb_rate = 0.04  # Imbalance rate
 min_class = [4, 5, 6]  # Minority classes
 maj_class = [7, 8, 9]  # Majority classes
-X_train, y_train, X_test, y_test, = load_image("famnist")
+X_train, y_train, X_test, y_test = load_image("famnist")
 X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test, min_class, maj_class,
                                                                     imb_rate=imb_rate, imb_test=False, val_frac=0.1)
 
