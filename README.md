@@ -39,3 +39,7 @@ Extra arguments are handled with the `./tox.ini` file.
 * Pytest: `python -m pytest`
 * Flake8: `flake8`
 * Coverage can be found in the generated `./htmlcov` folder
+
+## Appendix
+
+The appendix can be found in the [imbDRLAppendix](https://github.com/Denbergvanthijs/imbDRLAppendix) repository.
