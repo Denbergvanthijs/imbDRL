@@ -243,7 +243,7 @@ class TrainDDQN():
             [time_step.StepType.FIRST] * X_val.shape[0]), training=False)[0].numpy(), axis=1))  # Max action for each x in X
 
         if save_best is not None:
-            if not hasattr(self, 'best_score'):  # If no best model yet
+            if not hasattr(self, "best_score"):  # If no best model yet
                 self.best_score = 0.0
 
             if stats.get(save_best) >= self.best_score:  # Overwrite best model
@@ -260,7 +260,7 @@ class TrainDDQN():
         Final evaluation of trained Q-network with X_test and y_test.
         Optional PR and ROC curve comparison to X_train, y_train to ensure no overfitting is taking place.
         """
-        if hasattr(self, 'best_score'):
+        if hasattr(self, "best_score"):
             print(f"\033[92mBest score: {self.best_score:6f}!\033[0m")
             model = self.load_model(self.model_path)  # Load best saved model
         else:

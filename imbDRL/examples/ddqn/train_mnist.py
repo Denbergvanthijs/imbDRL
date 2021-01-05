@@ -37,7 +37,7 @@ model = TrainDDQN(episodes, warmup_steps, learning_rate, gamma, min_epsilon, dec
                   target_update_tau=target_update_tau, batch_size=batch_size, collect_steps_per_episode=collect_steps_per_episode,
                   memory_length=memory_length, collect_every=collect_every, n_step_update=n_step_update)
 
-model.compile_model(X_train, y_train, imb_rate, conv_layers, dense_layers, dropout_layers)
+model.compile_model(X_train, y_train, conv_layers, dense_layers, dropout_layers, imb_rate=imb_rate)
 model.train(X_val, y_val, "Gmean")
 
 stats = model.evaluate(X_test, y_test, X_train, y_train)

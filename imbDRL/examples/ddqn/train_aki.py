@@ -26,7 +26,6 @@ gamma = 0.0  # Discount factor
 min_epsilon = 0.5  # Minimal and final chance of choosing random action
 decay_episodes = episodes // 10  # Number of episodes to decay from 1.0 to `min_epsilon`
 
-imb_rate = 0.2318  # Imbalance rate
 min_class = [1]  # Minority classes
 maj_class = [0]  # Majority classes
 X_train, y_train, X_test, y_test = load_csv("./data/aki0.csv", "./data/aki1.csv", "aki", ["hadm_id"], normalization=True)
@@ -37,7 +36,7 @@ model = TrainDDQN(episodes, warmup_steps, learning_rate, gamma, min_epsilon, dec
                   target_update_tau=target_update_tau, batch_size=batch_size, collect_steps_per_episode=collect_steps_per_episode,
                   memory_length=memory_length, collect_every=collect_every, n_step_update=n_step_update)
 
-model.compile_model(X_train, y_train, imb_rate, conv_layers, dense_layers, dropout_layers)
+model.compile_model(X_train, y_train, conv_layers, dense_layers, dropout_layers)
 model.train(X_val, y_val, "F1")
 
 stats = model.evaluate(X_test, y_test, X_train, y_train)
