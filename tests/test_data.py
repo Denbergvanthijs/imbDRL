@@ -93,8 +93,8 @@ def test_load_imdb():
         data.load_imdb(config=(100, -10))
     assert "must be > 0" in str(exc.value)
 
-    imdb_data = data.load_imdb()
-    assert [x.shape for x in imdb_data] == [(25000, 500), (25000, ), (25000, 500), (25000, )]
+    imdb_data = data.load_imdb(config=(10, 5))
+    assert [x.shape for x in imdb_data] == [(25000, 5), (25000, ), (25000, 5), (25000, )]
     assert [x.dtype for x in imdb_data] == ["int32", "int32", "int32", "int32"]
 
 

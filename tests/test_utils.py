@@ -40,25 +40,6 @@ def test_split_csv(tmp_path):
     assert os.path.isfile(tmp_path / "credit1.csv")
 
 
-def test_get_reward_distribution():
-    """Tests imbDRL.utils.get_reward_distribution."""
-    distr = utils.get_reward_distribution(0.2).sample(1)
-    expected = np.array([[[0.2, -0.2], [-1, 1]]], dtype=np.float32)
-    assert np.array_equal(distr.numpy(), expected)
-
-    with pytest.raises(ValueError) as exc:
-        utils.get_reward_distribution(0).sample(1)
-    assert "is not in interval" in str(exc.value)
-
-    with pytest.raises(ValueError) as exc:
-        utils.get_reward_distribution(0.0).sample(1)
-    assert "is not in interval" in str(exc.value)
-
-    with pytest.raises(ValueError) as exc:
-        utils.get_reward_distribution(1).sample(1)
-    assert "is not in interval" in str(exc.value)
-
-
 def test_rounded_dict():
     """Tests imbDRL.utils.rounded_dict."""
     d = {"A": 10.123456789, "B": 100}

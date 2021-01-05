@@ -8,6 +8,8 @@ from sklearn.utils import shuffle
 from tensorflow.keras.datasets import cifar10, fashion_mnist, imdb, mnist
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
+from imbDRL.utils import imbalance_ratio
+
 TrainTestData = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 TrainTestValData = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
@@ -166,7 +168,7 @@ def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndar
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=val_frac, stratify=y_train)
 
     if print_stats:
-        p_train, p_test, p_val = [((y == 1).sum(), (y == 1).sum() / (y == 0).sum()) for y in (y_train, y_test, y_val)]
+        p_train, p_test, p_val = [((y == 1).sum(), imbalance_ratio(y)) for y in (y_train, y_test, y_val)]
         print(f"Imbalance ratio `p`:\n"
               f"\ttrain:      n={p_train[0]}, p={p_train[1]:.6f}\n"
               f"\ttest:       n={p_test[0]}, p={p_test[1]:.6f}\n"
