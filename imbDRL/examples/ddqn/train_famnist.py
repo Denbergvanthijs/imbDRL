@@ -8,13 +8,13 @@ from tf_agents.utils import common
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # CPU is faster than GPU
 
 episodes = 120_000  # Total number of episodes
-warmup_episodes = 50_000  # Amount of warmup steps to collect data with random policy
+warmup_steps = 50_000  # Amount of warmup steps to collect data with random policy
 memory_length = 100_000  # Max length of the Replay Memory
 batch_size = 32
 collect_steps_per_episode = 1000
 collect_every = 1000
 
-target_model_update = 10_000
+target_update_period = 10_000
 target_update_tau = 1
 n_step_update = 4
 
@@ -22,7 +22,7 @@ conv_layers = ((32, (5, 5), 2), (32, (5, 5), 2), )  # Convolutional layers
 dense_layers = (256, )  # Dense layers
 dropout_layers = None  # Dropout layers
 
-lr = 0.00025  # Learning rate
+learning_rate = 0.00025  # Learning rate
 gamma = 0.1  # Discount factor
 min_epsilon = 0.01  # Minimal and final chance of choosing random action
 decay_episodes = 100_000  # Number of episodes to decay from 1.0 to `min_epsilon`
@@ -36,7 +36,7 @@ X_train, y_train, X_test, y_test = load_image("famnist")
 X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test, min_class, maj_class,
                                                                     imb_rate=imb_rate, imb_test=False, val_frac=0.1)
 
-model = TrainDDQN(episodes, warmup_episodes, lr, gamma, min_epsilon, decay_episodes, target_model_update=target_model_update,
+model = TrainDDQN(episodes, warmup_steps, learning_rate, gamma, min_epsilon, decay_episodes, target_update_period=target_update_period,
                   target_update_tau=target_update_tau, batch_size=batch_size, collect_steps_per_episode=collect_steps_per_episode,
                   memory_length=memory_length, collect_every=collect_every, n_step_update=n_step_update)
 

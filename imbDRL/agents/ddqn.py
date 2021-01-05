@@ -6,6 +6,7 @@ import tensorflow as tf
 from imbDRL.environments.classifierenv import ClassifierEnv
 from imbDRL.metrics import (classification_metrics, network_predictions,
                             plot_pr_curve, plot_roc_curve)
+from imbDRL.utils import imbalance_ratio
 from tensorflow import data
 from tensorflow.keras.optimizers import Adam
 from tf_agents.agents.dqn.dqn_agent import DdqnAgent
@@ -23,9 +24,9 @@ from tqdm import tqdm
 class TrainDDQN():
     """Wrapper for DDQN training, validation, saving etc."""
 
-    def __init__(self, episodes: int, warmup_episodes: int, lr: float, gamma: float, min_epsilon: float, decay_episodes: int,
+    def __init__(self, episodes: int, warmup_steps: int, learning_rate: float, gamma: float, min_epsilon: float, decay_episodes: int,
                  model_path: str = None, log_dir: str = None, batch_size: int = 64, memory_length: int = None,
-                 collect_steps_per_episode: int = 1, val_every: int = None, target_model_update: int = 1, target_update_tau: float = 1.0,
+                 collect_steps_per_episode: int = 1, val_every: int = None, target_update_period: int = 1, target_update_tau: float = 1.0,
                  progressbar: bool = True, n_step_update: int = 1, gradient_clipping: float = 1.0, collect_every: int = 1) -> None:
         """
         Wrapper to make training easier.
@@ -33,10 +34,10 @@ class TrainDDQN():
 
         :param episodes: Number of training episodes
         :type  episodes: int
-        :param warmup_episodes: Number of episodes to fill Replay Buffer with random state-action pairs before training starts
-        :type  warmup_episodes: int
-        :param lr: Learning Rate for the Adam Optimizer
-        :type  lr: float
+        :param warmup_steps: Number of episodes to fill Replay Buffer with random state-action pairs before training starts
+        :type  warmup_steps: int
+        :param learning_rate: Learning Rate for the Adam Optimizer
+        :type  learning_rate: float
         :param gamma: Discount factor for the Q-values
         :type  gamma: float
         :param min_epsilon: Lowest and final value for epsilon
@@ -57,9 +58,9 @@ class TrainDDQN():
         :type  collect_every: int
         :param val_every: Validate the model every X episodes using the `collect_metrics()` function
         :type  val_every: int
-        :param target_model_update: Update the target Q-network every X episodes
-        :type  target_model_update: int
-        :param target_update_tau: Parameter for softening the `target_model_update`
+        :param target_update_period: Update the target Q-network every X episodes
+        :type  target_update_period: int
+        :param target_update_tau: Parameter for softening the `target_update_period`
         :type  target_update_tau: float
         :param progressbar: Enable or disable the progressbar for collecting data and training
         :type  progressbar: bool
@@ -68,15 +69,15 @@ class TrainDDQN():
         :rtype: NoneType
         """
         self.episodes = episodes  # Total episodes
-        self.warmup_episodes = warmup_episodes  # Amount of warmup steps before training
+        self.warmup_steps = warmup_steps  # Amount of warmup steps before training
         self.batch_size = batch_size  # Batch size of Replay Memory
         self.collect_steps_per_episode = collect_steps_per_episode  # Amount of steps to collect data each episode
         self.collect_every = collect_every  # Step interval to collect data during training
-        self.lr = lr  # Learning Rate
+        self.learning_rate = learning_rate  # Learning Rate
         self.gamma = gamma  # Discount factor
         self.min_epsilon = min_epsilon  # Minimal chance of choosing random action
         self.decay_episodes = decay_episodes  # Number of episodes to decay from 1.0 to `EPSILON`
-        self.target_model_update = target_model_update  # Period for soft updates
+        self.target_update_period = target_update_period  # Period for soft updates
         self.target_update_tau = target_update_tau
         self.progressbar = progressbar  # Enable or disable the progressbar for collecting data and training
         self.n_step_update = n_step_update
@@ -87,7 +88,7 @@ class TrainDDQN():
         if memory_length is not None:
             self.memory_length = memory_length  # Max Replay Memory length
         else:
-            self.memory_length = warmup_episodes
+            self.memory_length = warmup_steps
 
         if val_every is not None:
             self.val_every = val_every  # Validate the policy every `VAL_EVERY` episodes
@@ -103,12 +104,14 @@ class TrainDDQN():
             log_dir = "./logs/" + NOW
         self.writer = tf.summary.create_file_writer(log_dir)
 
-    def compile_model(self, X_train, y_train, imb_rate, conv_layers: tuple, dense_layers: tuple, dropout_layers: tuple = None,
+    def compile_model(self, X_train, y_train, conv_layers: tuple, dense_layers: tuple, dropout_layers: tuple = None, imb_rate: float = None,
                       loss_fn=common.element_wise_squared_loss) -> None:
         """Initializes the Q-network, agent, collect policy and replay buffer.
 
-        :param train_env: The training environment used by the agent
-        :type  train_env: tf_agents.environments.tf_py_environment.TFPyEnvironment
+        :param X_train: Training data for the model.
+        :type  X_train: np.ndarray
+        :param y_train: Labels corresponding to `X_train`.
+        :param y_train: np.ndarray
         :param conv_layers: Tuple of architecture of the convolutional layers.
             From tf_agents.networks.q_network:
                 (...) where each item is a length-three tuple indicating (filters, kernel_size, stride).
@@ -117,6 +120,8 @@ class TrainDDQN():
         :type  dense_layers: tuple
         :param dropout_layers: Tuple of percentage of dropout per each dense layer
         :type  dropout_layers: tuple
+        :param imb_rate: The imbalance ratio of the data.
+        :type  imb_rate: float
         :param loss_fn: Callable loss function
         :type  loss_fn: tf.compat.v1.losses
 
@@ -126,6 +131,9 @@ class TrainDDQN():
         for layer in (conv_layers, dense_layers, dropout_layers):
             if not isinstance(layer, (tuple, list, type(None))):
                 raise TypeError(f"Layer {layer} must be tuple or None, not {type(layer)}.")
+
+        if imb_rate is None:
+            imb_rate = imbalance_ratio(y_train)
 
         self.train_env = TFPyEnvironment(ClassifierEnv(X_train, y_train, imb_rate))
         self.global_episode = tf.Variable(0, name="global_episode", dtype=np.int64, trainable=False)  # Global train episode counter
@@ -142,17 +150,16 @@ class TrainDDQN():
         self.agent = DdqnAgent(self.train_env.time_step_spec(),
                                self.train_env.action_spec(),
                                q_network=q_net,
-                               optimizer=Adam(learning_rate=self.lr),
+                               optimizer=Adam(learning_rate=self.learning_rate),
                                td_errors_loss_fn=loss_fn,
                                train_step_counter=self.global_episode,
-                               target_update_period=self.target_model_update,
+                               target_update_period=self.target_update_period,
                                target_update_tau=self.target_update_tau,
                                gamma=self.gamma,
                                epsilon_greedy=epsilon_decay,
                                n_step_update=self.n_step_update,
                                gradient_clipping=self.gradient_clipping)
         self.agent.initialize()
-        self.agent.train = common.function(self.agent.train)  # Optimalization
 
         self.random_policy = RandomTFPolicy(self.train_env.time_step_spec(), self.train_env.action_spec())
         self.replay_buffer = TFUniformReplayBuffer(data_spec=self.agent.collect_data_spec,
@@ -162,12 +169,14 @@ class TrainDDQN():
         self.warmup_driver = DynamicStepDriver(self.train_env,
                                                self.random_policy,
                                                observers=[self.replay_buffer.add_batch],
-                                               num_steps=self.warmup_episodes)
+                                               num_steps=self.warmup_steps)
 
         self.collect_driver = DynamicStepDriver(self.train_env,
                                                 self.agent.collect_policy,
                                                 observers=[self.replay_buffer.add_batch],
                                                 num_steps=self.collect_steps_per_episode)
+
+        self.agent.train = common.function(self.agent.train)  # Optimalization
         self.warmup_driver.run = common.function(self.warmup_driver.run)
         self.collect_driver.run = common.function(self.collect_driver.run)
 
@@ -187,7 +196,7 @@ class TrainDDQN():
 
         # Warmup period, fill memory with random actions
         if self.progressbar:
-            print(f"\033[92mCollecting data for {self.warmup_episodes:_} episodes... This might take a few minutes...\033[0m")
+            print(f"\033[92mCollecting data for {self.warmup_steps:_} steps... This might take a few minutes...\033[0m")
 
         self.warmup_driver.run(time_step=None, policy_state=self.random_policy.get_initial_state(self.train_env.batch_size))
 

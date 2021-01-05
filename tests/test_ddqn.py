@@ -40,7 +40,7 @@ def test_compile_model(tmp_path):
 
     model = TrainDDQN(10, 10, 0.001, 0.0, 0.1, 5, model_path=tmp_models, log_dir=tmp_logs)
     assert not model.compiled
-    model.compile_model(np.array([1.], dtype=np.float32), np.array([1.], dtype=np.float32), 0.5, None, (128, ), None)
+    model.compile_model(np.array([1.], dtype=np.float32), np.array([1.], dtype=np.float32), None, (128, ), None)
     assert model.compiled
 
 
@@ -55,7 +55,7 @@ def test_train(tmp_path):
         model.train()
     assert "must be compiled" in str(exc.value)
 
-    model.compile_model(np.array([1., 1.], dtype=np.float32), np.array([1., 1.], dtype=np.float32), 0.5, None, (128,), None)
+    model.compile_model(np.array([1., 1.], dtype=np.float32), np.array([1., 1.], dtype=np.float32), None, (128,), None)
     model.train(np.empty(10, dtype=np.float32), np.random.choice(2, size=10).astype(np.int32))
     assert model.replay_buffer.num_frames().numpy() >= 10 + 10  # 10 for warmup + 1 for each episode
     assert model.global_episode == 10
@@ -66,7 +66,7 @@ def test_train(tmp_path):
         model.train()
     assert "must be compiled" in str(exc.value)
 
-    model.compile_model(np.array([1., 1.], dtype=np.float32), np.array([1., 1.], dtype=np.float32), 0.5, None, (128,), None)
+    model.compile_model(np.array([1., 1.], dtype=np.float32), np.array([1., 1.], dtype=np.float32), None, (128,), None)
     model.train(np.empty(10, dtype=np.float32), np.random.choice(2, size=10).astype(np.int32))
     assert model.replay_buffer.num_frames() >= 10  # 10 in total since no memory length is defined
     assert model.global_episode == 10
