@@ -2,7 +2,6 @@ import os
 
 import numpy as np
 import pandas as pd
-import tensorflow_probability as tfp
 from sklearn.model_selection import train_test_split
 
 
@@ -40,37 +39,6 @@ def split_csv(fp: str = "./data/creditcard.csv", fp_dest: str = "./data",
 
     train.to_csv(f"{fp_dest}/{name}0.csv", index=False)
     test.to_csv(f"{fp_dest}/{name}1.csv", index=False)
-
-
-def get_reward_distribution(imb_rate: float):
-    """Generates reward distribution based on given imbalance rate.
-
-    From the documentation of tf_agents.bandits.environments.ClassificationBanditEnvironment:
-
-    reward_distribution: a `tfd.Distribution` with event_shape
-        `[num_classes, num_actions]`. Entry `[i, j]` is the reward for taking
-        action `j` for an instance of class `i`.
-
-    The environment will always have 2 classes with each 2 actions.
-    Array[0][0] corresponds to action 0 on class 0, thus the majority class, thus True Negative
-    Array[0][1]: False Positive reward
-    Array[1][0]: False Negative reward
-    Array[1][1]: True Positive reward
-
-    :param imb_rate: The imbalance rate of the data: len(min_class) / len(maj_class)
-    :type  imb_rate: float
-
-    :return: Combined Independent distribution
-    :rtype: tensorflow_probability.Distribution
-    """
-    if not 0 < imb_rate < 1:
-        raise ValueError(f"{imb_rate} is not in interval 0 < x < 1.")
-
-    bernoulli = tfp.distributions.Bernoulli(probs=[[0, 0], [0, 0]], dtype=np.float32)
-    combined = (tfp.bijectors.Shift([[imb_rate, -imb_rate], [-1, 1]])
-                (tfp.bijectors.Scale([[1, 1], [1, 1]])
-                 (bernoulli)))
-    return tfp.distributions.Independent(combined, reinterpreted_batch_ndims=2)
 
 
 def rounded_dict(d: dict, precision: int = 6) -> dict:
