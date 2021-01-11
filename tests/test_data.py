@@ -137,7 +137,7 @@ def test_get_train_test_val(capsys):
 
 def test_imbalance_data():
     """Tests imbDRL.data.imbalance_data."""
-    X = [7, 7, 7, 8, 8, 8]
+    X = [[1, 2], [3, 4], [5, 6], [1, 2], [3, 4], [5, 6]]
     y = [2, 2, 2, 3, 3, 3]
 
     with pytest.raises(TypeError) as exc:
@@ -167,19 +167,19 @@ def test_imbalance_data():
         data.imbalance_data(X, y, [2], 3, imb_rate=0.0)
     assert "`maj_class` must be of type list or tuple" in str(exc.value)
 
-    X = np.arange(10)
-    y = np.arange(11)
+    X = np.arange(10).reshape(5, 2)
+    y = np.arange(6)
 
     with pytest.raises(ValueError) as exc:
         data.imbalance_data(X, y, [1], [0], imb_rate=0.2)
     assert "must contain the same amount of rows" in str(exc.value)
 
-    X = np.arange(100)
+    X = np.random.rand(100, 2)
     y = np.concatenate([np.ones(50), np.zeros(50)])
     X, y = data.imbalance_data(X, y, [1], [0], imb_rate=0.2)
-    assert [(60,), (60, ), 10] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_rate, 10/50(=0.2) is new imb_rate
+    assert [(60, 2), (60, ), 10] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_rate, 10/50(=0.2) is new imb_rate
 
-    X = np.arange(100)
+    X = np.random.rand(100, 2)
     y = np.concatenate([np.ones(50), np.zeros(50)])
     X, y = data.imbalance_data(X, y, [1], [0])
-    assert [(100,), (100, ), 50] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_rate, 50/50(=1) is new imb_rate
+    assert [(100, 2), (100, ), 50] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_rate, 50/50(=1) is new imb_rate

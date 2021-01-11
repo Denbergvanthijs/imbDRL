@@ -201,19 +201,15 @@ def imbalance_data(X: np.ndarray, y: np.ndarray, min_class: list, maj_class: lis
     if imb_rate is None:  # Do not imbalance data if no `imb_rate` is given
         imb_rate = 1
 
-    X_min, X_maj = [], []
-    for i, value in enumerate(y):
-        if value in min_class:
-            X_min.append(X[i])
+    X_min = X[np.isin(y, min_class)]  # Mask the correct indexes
+    X_maj = X[np.isin(y, maj_class)]  # Only keep data/labels for x in {min_class, maj_class} and forget all other
 
-        if value in maj_class:
-            X_maj.append(X[i])
-
-    min_len = int(len(X_maj) * imb_rate)
-
+    min_len = int(X_maj.shape[0] * imb_rate)  # Amount of rows to select from minority classes to get to correct imbalance ratio
     # Keep all majority rows, decrease minority rows to match `imb_rate`
-    X_imb = np.array(X_maj + X_min[:min_len], dtype=np.float32)  # `min_len` could be more than the number of minority rows
-    y_imb = np.concatenate((np.zeros(len(X_maj)), np.ones(X_imb.shape[0] - len(X_maj)))).astype(np.int32)
+    X_min = X_min[np.random.choice(X_min.shape[0], min(min_len, X_min.shape[0]), replace=False), :]
+
+    X_imb = np.concatenate([X_maj, X_min]).astype(np.float32)
+    y_imb = np.concatenate((np.zeros(X_maj.shape[0]), np.ones(X_min.shape[0]))).astype(np.int32)
     X_imb, y_imb = shuffle(X_imb, y_imb)
 
     return X_imb, y_imb
