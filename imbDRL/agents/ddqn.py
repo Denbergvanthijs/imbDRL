@@ -12,7 +12,7 @@ from tensorflow.keras.optimizers import Adam
 from tf_agents.agents.dqn.dqn_agent import DdqnAgent
 from tf_agents.drivers.dynamic_step_driver import DynamicStepDriver
 from tf_agents.environments.tf_py_environment import TFPyEnvironment
-from tf_agents.networks.q_network import QNetwork
+from tf_agents.networks.sequential import Sequential
 from tf_agents.policies.random_tf_policy import RandomTFPolicy
 from tf_agents.replay_buffers.tf_uniform_replay_buffer import \
     TFUniformReplayBuffer
@@ -104,22 +104,15 @@ class TrainDDQN():
             log_dir = "./logs/" + NOW
         self.writer = tf.summary.create_file_writer(log_dir)
 
-    def compile_model(self, X_train, y_train, conv_layers: tuple, dense_layers: tuple, dropout_layers: tuple = None, imb_rate: float = None,
-                      loss_fn=common.element_wise_squared_loss) -> None:
+    def compile_model(self, X_train, y_train, layers: list = [], imb_rate: float = None, loss_fn=common.element_wise_squared_loss) -> None:
         """Initializes the Q-network, agent, collect policy and replay buffer.
 
         :param X_train: Training data for the model.
         :type  X_train: np.ndarray
-        :param y_train: Labels corresponding to `X_train`.
+        :param y_train: Labels corresponding to `X_train`.  1 for the positive class, 0 for the negative class.
         :param y_train: np.ndarray
-        :param conv_layers: Tuple of architecture of the convolutional layers.
-            From tf_agents.networks.q_network:
-                (...) where each item is a length-three tuple indicating (filters, kernel_size, stride).
-        :type  conv_layers: tuple
-        :param dense_layers: Tuple of dense layer architecture. Each number in the tuple is the number of neurons of that layer.
-        :type  dense_layers: tuple
-        :param dropout_layers: Tuple of percentage of dropout per each dense layer
-        :type  dropout_layers: tuple
+        :param layers: List of layers to feed into the TF-agents custom Sequential(!) layer.
+        :type  layers: list
         :param imb_rate: The imbalance ratio of the data.
         :type  imb_rate: float
         :param loss_fn: Callable loss function
@@ -128,10 +121,6 @@ class TrainDDQN():
         :return: None
         :rtype: NoneType
         """
-        for layer in (conv_layers, dense_layers, dropout_layers):
-            if not isinstance(layer, (tuple, list, type(None))):
-                raise TypeError(f"Layer {layer} must be tuple or None, not {type(layer)}.")
-
         if imb_rate is None:
             imb_rate = imbalance_ratio(y_train)
 
@@ -141,15 +130,11 @@ class TrainDDQN():
         epsilon_decay = tf.compat.v1.train.polynomial_decay(
             1.0, self.global_episode, self.decay_episodes, end_learning_rate=self.min_epsilon)
 
-        q_net = QNetwork(self.train_env.observation_spec(),
-                         self.train_env.action_spec(),
-                         conv_layer_params=conv_layers,
-                         fc_layer_params=dense_layers,
-                         dropout_layer_params=dropout_layers)
+        self.q_net = Sequential(layers, self.train_env.observation_spec())
 
         self.agent = DdqnAgent(self.train_env.time_step_spec(),
                                self.train_env.action_spec(),
-                               q_network=q_net,
+                               q_network=self.q_net,
                                optimizer=Adam(learning_rate=self.learning_rate),
                                td_errors_loss_fn=loss_fn,
                                train_step_counter=self.global_episode,

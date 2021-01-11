@@ -1,11 +1,8 @@
-import os
-
 from imbDRL.agents.ddqn import TrainDDQN
 from imbDRL.data import get_train_test_val, load_image
 from imbDRL.utils import rounded_dict
+from tensorflow.keras.layers import Conv2D, Dense, Flatten, MaxPooling2D
 from tf_agents.utils import common
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # CPU is faster than GPU
 
 episodes = 120_000  # Total number of episodes
 warmup_steps = 50_000  # Amount of warmup steps to collect data with random policy
@@ -18,9 +15,13 @@ target_update_period = 10_000
 target_update_tau = 1
 n_step_update = 4
 
-conv_layers = ((32, (5, 5), 2), (32, (5, 5), 2), )  # Convolutional layers
-dense_layers = (256, )  # Dense layers
-dropout_layers = None  # Dropout layers
+layers = [Conv2D(32, (5, 5), padding="Same", activation="relu"),
+          MaxPooling2D(pool_size=(2, 2)),
+          Conv2D(32, (5, 5), padding="Same", activation="relu"),
+          MaxPooling2D(pool_size=(2, 2)),
+          Flatten(),
+          Dense(256, activation="relu"),
+          Dense(2, activation=None)]
 
 learning_rate = 0.00025  # Learning rate
 gamma = 0.1  # Discount factor
@@ -40,7 +41,7 @@ model = TrainDDQN(episodes, warmup_steps, learning_rate, gamma, min_epsilon, dec
                   target_update_tau=target_update_tau, batch_size=batch_size, collect_steps_per_episode=collect_steps_per_episode,
                   memory_length=memory_length, collect_every=collect_every, n_step_update=n_step_update)
 
-model.compile_model(X_train, y_train, conv_layers, dense_layers, dropout_layers, imb_rate=imb_rate, loss_fn=loss_fn)
+model.compile_model(X_train, y_train, layers, imb_rate=imb_rate, loss_fn=loss_fn)
 model.train(X_val, y_val, "Gmean")
 
 stats = model.evaluate(X_test, y_test, X_train, y_train)

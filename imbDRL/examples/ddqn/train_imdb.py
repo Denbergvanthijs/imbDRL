@@ -3,6 +3,7 @@ import os
 from imbDRL.agents.ddqn import TrainDDQN
 from imbDRL.data import get_train_test_val, load_imdb
 from imbDRL.utils import rounded_dict
+from tensorflow.keras.layers import Dense
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # CPU is faster than GPU
 
@@ -17,9 +18,8 @@ target_update_period = 10_000
 target_update_tau = 1
 n_step_update = 4
 
-conv_layers = None  # Convolutional layers
-dense_layers = (250, )  # Dense layers
-dropout_layers = None  # Dropout layers
+layers = [Dense(250, activation="relu"),
+          Dense(2, activation=None)]
 
 learning_rate = 0.00025  # Learning rate
 gamma = 0.1  # Discount factor
@@ -29,7 +29,7 @@ decay_episodes = 100_000  # Number of episodes to decay from 1.0 to `min_epsilon
 imb_rate = 0.1  # Imbalance rate
 min_class = [0]  # Minority classes
 maj_class = [1]  # Majority classes
-X_train, y_train, X_test, y_test = load_imdb()
+X_train, y_train, X_test, y_test = load_imdb(config=(5_000, 500))
 X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test,
                                                                     min_class, maj_class, val_frac=0.1, imb_rate=imb_rate, imb_test=False)
 
@@ -37,8 +37,8 @@ model = TrainDDQN(episodes, warmup_steps, learning_rate, gamma, min_epsilon, dec
                   target_update_tau=target_update_tau, batch_size=batch_size, collect_steps_per_episode=collect_steps_per_episode,
                   memory_length=memory_length, collect_every=collect_every, n_step_update=n_step_update)
 
-model.compile_model(X_train, y_train, conv_layers, dense_layers, dropout_layers, imb_rate=imb_rate)
-model.train(X_val, y_val, "Gmean")
+model.compile_model(X_train, y_train, layers, imb_rate=imb_rate)
+model.train(X_test, y_test, "Gmean")
 
 stats = model.evaluate(X_test, y_test, X_train, y_train)
 print(rounded_dict(stats))

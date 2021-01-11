@@ -3,6 +3,7 @@ import os
 from imbDRL.agents.ddqn import TrainDDQN
 from imbDRL.data import get_train_test_val, load_csv
 from imbDRL.utils import rounded_dict
+from tensorflow.keras.layers import Dense, Dropout
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # CPU is faster than GPU on structured data
 
@@ -17,9 +18,9 @@ target_update_period = episodes // 30  # Period to overwrite the target Q-networ
 target_update_tau = 1  # Soften the target model update
 n_step_update = 4
 
-conv_layers = None  # Convolutional layers
-dense_layers = (256, 256, )  # Dense layers
-dropout_layers = (0.2, 0.2, )  # Dropout layers
+layers = [Dense(256, activation="relu"), Dropout(0.2),
+          Dense(256, activation="relu"), Dropout(0.2),
+          Dense(2, activation=None)]  # No activation, pure Q-values
 
 learning_rate = 0.001  # Learning rate
 gamma = 0.0  # Discount factor
@@ -32,11 +33,15 @@ X_train, y_train, X_test, y_test = load_csv("./data/aki0.csv", "./data/aki1.csv"
 X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test,
                                                                     min_class, maj_class, val_frac=0.2)
 
+# X_train = X_train.reshape(X_train.shape[:-1] + (18, 7))  # RNN reshaping
+# X_test = X_test.reshape(X_test.shape[:-1] + (18, 7))
+# X_val = X_val.reshape(X_val.shape[:-1] + (18, 7))
+
 model = TrainDDQN(episodes, warmup_steps, learning_rate, gamma, min_epsilon, decay_episodes, target_update_period=target_update_period,
                   target_update_tau=target_update_tau, batch_size=batch_size, collect_steps_per_episode=collect_steps_per_episode,
                   memory_length=memory_length, collect_every=collect_every, n_step_update=n_step_update)
 
-model.compile_model(X_train, y_train, conv_layers, dense_layers, dropout_layers)
+model.compile_model(X_train, y_train, layers)
 model.train(X_val, y_val, "F1")
 
 stats = model.evaluate(X_test, y_test, X_train, y_train)
