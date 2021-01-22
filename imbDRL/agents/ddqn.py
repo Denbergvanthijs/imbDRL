@@ -4,8 +4,8 @@ from datetime import datetime
 import numpy as np
 import tensorflow as tf
 from imbDRL.environments.classifierenv import ClassifierEnv
-from imbDRL.metrics import (classification_metrics, network_predictions,
-                            plot_pr_curve, plot_roc_curve)
+from imbDRL.metrics import (classification_metrics, decision_function,
+                            network_predictions, plot_pr_curve, plot_roc_curve)
 from imbDRL.utils import imbalance_ratio
 from tensorflow import data
 from tensorflow.keras.optimizers import Adam
@@ -16,7 +16,6 @@ from tf_agents.networks.sequential import Sequential
 from tf_agents.policies.random_tf_policy import RandomTFPolicy
 from tf_agents.replay_buffers.tf_uniform_replay_buffer import \
     TFUniformReplayBuffer
-from tf_agents.trajectories import time_step
 from tf_agents.utils import common
 from tqdm import tqdm
 
@@ -95,10 +94,10 @@ class TrainDDQN():
         else:
             self.val_every = self.episodes // min(50, self.episodes)  # Can't validate the model 50 times if self.episodes < 50
 
-        if model_path is None:
-            self.model_path = "./models/" + NOW + ".pkl"
-        else:
+        if model_path is not None:
             self.model_path = model_path
+        else:
+            self.model_path = "./models/" + NOW + ".pkl"
 
         if log_dir is None:
             log_dir = "./logs/" + NOW
@@ -195,11 +194,10 @@ class TrainDDQN():
         def _train():
             experiences, _ = next(iterator)
             return self.agent.train(experiences).loss
+        _train = common.function(_train)
 
         ts = None
         policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
-        _train = common.function(_train)
-
         self.collect_metrics(*args)  # Initial collection for step 0
         pbar = tqdm(total=self.episodes, disable=(not self.progressbar), desc="Training the DDQN")
         for _ in range(self.episodes):
@@ -224,8 +222,7 @@ class TrainDDQN():
         y_pred = network_predictions(self.agent._target_q_network, X_val)
         stats = classification_metrics(y_val, y_pred)
 
-        avgQ = np.mean(np.max(self.agent._target_q_network(X_val, step_type=tf.constant(
-            [time_step.StepType.FIRST] * X_val.shape[0]), training=False)[0].numpy(), axis=1))  # Max action for each x in X
+        avgQ = np.mean(decision_function(self.agent._target_q_network, X_val))  # Max action for each x in X
 
         if save_best is not None:
             if not hasattr(self, "best_score"):  # If no best model yet

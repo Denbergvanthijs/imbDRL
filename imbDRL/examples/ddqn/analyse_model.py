@@ -6,11 +6,11 @@ from imbDRL.metrics import (classification_metrics, network_predictions,
                             plot_pr_curve, plot_roc_curve)
 from imbDRL.utils import rounded_dict
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # CPU is faster than GPU
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # CPU is faster than GPU on structured data
 
 min_class = [1]  # Minority classes, same setup as in original paper
 maj_class = [0]  # Majority classes
-fp_model = "./models/20201229_131626.pkl"
+fp_model = "./models/20210118_132311.pkl"
 
 X_train, y_train, X_test, y_test = load_csv("./data/credit0.csv", "./data/credit1.csv", "Class", ["Time"], normalization=True)
 network = TrainDDQN.load_model(fp_model)
