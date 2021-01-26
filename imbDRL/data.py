@@ -1,5 +1,5 @@
 import os
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 from pandas import read_csv
@@ -53,7 +53,7 @@ def load_image(data_source: str) -> TrainTestData:
     return X_train, y_train, X_test, y_test
 
 
-def load_csv(fp_train: str, fp_test: str, label_col: str, drop_cols: list, normalization: bool = False) -> TrainTestData:
+def load_csv(fp_train: str, fp_test: str, label_col: str, drop_cols: List[str], normalization: bool = False) -> TrainTestData:
     """
     Loads any csv-file from local filepaths. Returns X and y for both train and test datasets.
     Option to normalize the data with min-max normalization.
@@ -64,6 +64,10 @@ def load_csv(fp_train: str, fp_test: str, label_col: str, drop_cols: list, norma
     :type  fp_train: str
     :param fp_test: Location of the test csv-file
     :type  fp_test: str
+    :param label_col: The name of the column containing the labels of the data
+    :rtype label_col: str
+    :param drop_cols: List of the names of the columns to be dropped. `label_col` gets dropped automatically
+    :rtype drop_cols: List of strings
     :param normalization: Normalize the data with min-max normalization?
     :type  normalization: bool
 
@@ -123,12 +127,12 @@ def load_imdb(config: Tuple[int, int] = (5_000, 500)) -> TrainTestData:
     return X_train, y_train, X_test, y_test
 
 
-def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndarray, y_test: np.ndarray, min_classes: list,
-                       maj_classes: list, imb_rate: float = None, imb_test: bool = True, val_frac: float = 0.25,
+def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndarray, y_test: np.ndarray, min_classes: List[int],
+                       maj_classes: List[int], imb_ratio: float = None, imb_test: bool = True, val_frac: float = 0.25,
                        print_stats: bool = True) -> TrainTestValData:
     """
     Imbalances data and divides the data into train, test and validation sets.
-    The imbalance rate of each individual dataset is approx. the same as the given `imb_rate`.
+    The imbalance rate of each individual dataset is approx. the same as the given `imb_ratio`.
 
     :param X_train: The X_train data
     :type  X_train: np.ndarray
@@ -142,9 +146,9 @@ def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndar
     :type  min_classes: list
     :param maj_classes: List of labels of all majority classes.
     :type  maj_classes: list
-    :param imb_rate: Imbalance ratio for minority to majority class: len(minority datapoints) / len(majority datapoints)
-        If the `imb_rate` is None, data will not be imbalanced and will only be relabeled to 1's and 0's.
-    :type  imb_rate: float
+    :param imb_ratio: Imbalance ratio for minority to majority class: len(minority datapoints) / len(majority datapoints)
+        If the `imb_ratio` is None, data will not be imbalanced and will only be relabeled to 1's and 0's.
+    :type  imb_ratio: float
     :param imb_test: Imbalance the test dataset?
     :type  imb_test: bool
     :param val_frac: Fraction to take from X_train and y_train for X_val and y_val
@@ -160,9 +164,9 @@ def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndar
     if not isinstance(print_stats, bool):
         raise TypeError(f"`print_stats` must be of type `bool`, not {type(print_stats)}.")
 
-    X_train, y_train = imbalance_data(X_train, y_train, min_classes, maj_classes, imb_rate=imb_rate)
+    X_train, y_train = imbalance_data(X_train, y_train, min_classes, maj_classes, imb_ratio=imb_ratio)
     # Only imbalance test-data if imb_test is True
-    X_test, y_test = imbalance_data(X_test, y_test, min_classes, maj_classes, imb_rate=imb_rate if imb_test else None)
+    X_test, y_test = imbalance_data(X_test, y_test, min_classes, maj_classes, imb_ratio=imb_ratio if imb_test else None)
 
     # stratify=y_train to ensure class balance is kept between train and validation datasets
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=val_frac, stratify=y_train)
@@ -177,12 +181,13 @@ def get_train_test_val(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndar
     return X_train, y_train, X_test, y_test, X_val, y_val
 
 
-def imbalance_data(X: np.ndarray, y: np.ndarray, min_class: list, maj_class: list, imb_rate: float = None) -> Tuple[np.ndarray, np.ndarray]:
+def imbalance_data(X: np.ndarray, y: np.ndarray, min_class: List[int], maj_class: List[int],
+                   imb_ratio: float = None) -> Tuple[np.ndarray, np.ndarray]:
     """
     Split data in minority and majority, only values in {min_class, maj_class} will be kept.
     (Possibly) decrease minority rows to match the imbalance rate.
-    If initial imb_rate of dataset is lower than given `imb_rate`, the imb_rate will not be changed.
-    If the `imb_rate` is None, data will not be imbalanced and will only be relabeled to 1's and 0's.
+    If initial imb_ratio of dataset is lower than given `imb_ratio`, the imb_ratio of the returned data will not be changed.
+    If the `imb_ratio` is None, data will not be imbalanced and will only be relabeled to 1's and 0's.
     """
     if not isinstance(X, np.ndarray):
         raise TypeError(f"`X` must be of type `np.ndarray` not {type(X)}")
@@ -195,17 +200,17 @@ def imbalance_data(X: np.ndarray, y: np.ndarray, min_class: list, maj_class: lis
     if not isinstance(maj_class, (list, tuple)):
         raise TypeError("`maj_class` must be of type list or tuple.")
 
-    if (imb_rate is not None) and not (0 < imb_rate < 1):
-        raise ValueError(f"{imb_rate} is not in interval 0 < x < 1.")
+    if (imb_ratio is not None) and not (0 < imb_ratio < 1):
+        raise ValueError(f"{imb_ratio} is not in interval 0 < imb_ratio < 1.")
 
-    if imb_rate is None:  # Do not imbalance data if no `imb_rate` is given
-        imb_rate = 1
+    if imb_ratio is None:  # Do not imbalance data if no `imb_ratio` is given
+        imb_ratio = 1
 
     X_min = X[np.isin(y, min_class)]  # Mask the correct indexes
     X_maj = X[np.isin(y, maj_class)]  # Only keep data/labels for x in {min_class, maj_class} and forget all other
 
-    min_len = int(X_maj.shape[0] * imb_rate)  # Amount of rows to select from minority classes to get to correct imbalance ratio
-    # Keep all majority rows, decrease minority rows to match `imb_rate`
+    min_len = int(X_maj.shape[0] * imb_ratio)  # Amount of rows to select from minority classes to get to correct imbalance ratio
+    # Keep all majority rows, decrease minority rows to match `imb_ratio`
     X_min = X_min[np.random.choice(X_min.shape[0], min(min_len, X_min.shape[0]), replace=False), :]
 
     X_imb = np.concatenate([X_maj, X_min]).astype(np.float32)

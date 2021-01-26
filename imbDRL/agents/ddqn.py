@@ -90,7 +90,7 @@ class TrainDDQN():
             self.memory_length = warmup_steps
 
         if val_every is not None:
-            self.val_every = val_every  # Validate the policy every `VAL_EVERY` episodes
+            self.val_every = val_every  # Validate the policy every `val_every` episodes
         else:
             self.val_every = self.episodes // min(50, self.episodes)  # Can't validate the model 50 times if self.episodes < 50
 
@@ -103,8 +103,8 @@ class TrainDDQN():
             log_dir = "./logs/" + NOW
         self.writer = tf.summary.create_file_writer(log_dir)
 
-    def compile_model(self, X_train, y_train, layers: list = [], imb_rate: float = None, loss_fn=common.element_wise_squared_loss) -> None:
-        """Initializes the Q-network, agent, collect policy and replay buffer.
+    def compile_model(self, X_train, y_train, layers: list = [], imb_ratio: float = None, loss_fn=common.element_wise_squared_loss) -> None:
+        """Initializes the neural networks, DDQN-agent, collect policies and replay buffer.
 
         :param X_train: Training data for the model.
         :type  X_train: np.ndarray
@@ -112,19 +112,20 @@ class TrainDDQN():
         :param y_train: np.ndarray
         :param layers: List of layers to feed into the TF-agents custom Sequential(!) layer.
         :type  layers: list
-        :param imb_rate: The imbalance ratio of the data.
-        :type  imb_rate: float
+        :param imb_ratio: The imbalance ratio of the data.
+        :type  imb_ratio: float
         :param loss_fn: Callable loss function
         :type  loss_fn: tf.compat.v1.losses
 
         :return: None
         :rtype: NoneType
         """
-        if imb_rate is None:
-            imb_rate = imbalance_ratio(y_train)
+        if imb_ratio is None:
+            imb_ratio = imbalance_ratio(y_train)
 
-        self.train_env = TFPyEnvironment(ClassifierEnv(X_train, y_train, imb_rate))
+        self.train_env = TFPyEnvironment(ClassifierEnv(X_train, y_train, imb_ratio))
         self.global_episode = tf.Variable(0, name="global_episode", dtype=np.int64, trainable=False)  # Global train episode counter
+
         # Custom epsilon decay: https://github.com/tensorflow/agents/issues/339
         epsilon_decay = tf.compat.v1.train.polynomial_decay(
             1.0, self.global_episode, self.decay_episodes, end_learning_rate=self.min_epsilon)
@@ -153,12 +154,12 @@ class TrainDDQN():
         self.warmup_driver = DynamicStepDriver(self.train_env,
                                                self.random_policy,
                                                observers=[self.replay_buffer.add_batch],
-                                               num_steps=self.warmup_steps)
+                                               num_steps=self.warmup_steps)  # Uses a random policy
 
         self.collect_driver = DynamicStepDriver(self.train_env,
                                                 self.agent.collect_policy,
                                                 observers=[self.replay_buffer.add_batch],
-                                                num_steps=self.collect_steps_per_episode)
+                                                num_steps=self.collect_steps_per_episode)  # Uses the epsilon-greedy policy of the agent
 
         self.agent.train = common.function(self.agent.train)  # Optimalization
         self.warmup_driver.run = common.function(self.warmup_driver.run)
@@ -171,12 +172,13 @@ class TrainDDQN():
 
         :param *args: All arguments will be passed to `collect_metrics()`.
             This can be usefull to pass callables, testing environments or validation data.
+            Overwrite the TrainDDQN.collect_metrics() function to use your own *args.
         :type  *args: Any
 
         :return: None
         :rtype: NoneType, last step is saving the model as a side-effect
         """
-        assert self.compiled, "Model must be compiled with model.compile_model() before training."
+        assert self.compiled, "Model must be compiled with model.compile_model(X_train, y_train, layers) before training."
 
         # Warmup period, fill memory with random actions
         if self.progressbar:
@@ -194,12 +196,12 @@ class TrainDDQN():
         def _train():
             experiences, _ = next(iterator)
             return self.agent.train(experiences).loss
-        _train = common.function(_train)
+        _train = common.function(_train)  # Optimalization
 
         ts = None
         policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
         self.collect_metrics(*args)  # Initial collection for step 0
-        pbar = tqdm(total=self.episodes, disable=(not self.progressbar), desc="Training the DDQN")
+        pbar = tqdm(total=self.episodes, disable=(not self.progressbar), desc="Training the DDQN")  # TQDM progressbar
         for _ in range(self.episodes):
             if not self.global_episode % self.collect_every:
                 # Collect a few steps using collect_policy and save to `replay_buffer`
@@ -217,11 +219,20 @@ class TrainDDQN():
                 self.collect_metrics(*args)
         pbar.close()
 
-    def collect_metrics(self, X_val, y_val, save_best: str = None):
-        """Collects metrics using the trained Q-network."""
+    def collect_metrics(self, X_val: np.ndarray, y_val: np.ndarray, save_best: str = None):
+        """Collects metrics using the trained Q-network.
+
+        :param X_val: Features of validation data, same shape as X_train
+        :type  X_val: np.ndarray
+        :param y_val: Labels of validation data, same shape as y_train
+        :type  y_val: np.ndarray
+        :param save_best: Saving the best model of all validation runs based on given metric:
+            Choose one of: {Gmean, F1, Precision, Recall, TP, TN, FP, FN}
+            This improves stability since the model at the last episode is not guaranteed to be the best model.
+        :type  save_best: str
+        """
         y_pred = network_predictions(self.agent._target_q_network, X_val)
         stats = classification_metrics(y_val, y_pred)
-
         avgQ = np.mean(decision_function(self.agent._target_q_network, X_val))  # Max action for each x in X
 
         if save_best is not None:
@@ -229,7 +240,7 @@ class TrainDDQN():
                 self.best_score = 0.0
 
             if stats.get(save_best) >= self.best_score:  # Overwrite best model
-                self.save_model()  # Saving directly to avoid shallow copy without trained weights
+                self.save_network()  # Saving directly to avoid shallow copy without trained weights
                 self.best_score = stats.get(save_best)
 
         with self.writer.as_default():
@@ -241,28 +252,44 @@ class TrainDDQN():
         """
         Final evaluation of trained Q-network with X_test and y_test.
         Optional PR and ROC curve comparison to X_train, y_train to ensure no overfitting is taking place.
+
+        :param X_test: Features of test data, same shape as X_train
+        :type  X_test: np.ndarray
+        :param y_test: Labels of test data, same shape as y_train
+        :type  y_test: np.ndarray
+        :param X_train: Features of train data
+        :type  X_train: np.ndarray
+        :param y_train: Labels of train data
+        :type  y_train: np.ndarray
         """
         if hasattr(self, "best_score"):
             print(f"\033[92mBest score: {self.best_score:6f}!\033[0m")
-            model = self.load_model(self.model_path)  # Load best saved model
+            network = self.load_network(self.model_path)  # Load best saved model
         else:
-            model = self.agent._target_q_network  # Load latest target model
+            network = self.agent._target_q_network  # Load latest target model
 
         if (X_train is not None) and (y_train is not None):
-            plot_pr_curve(model, X_test, y_test, X_train, y_train)
-            plot_roc_curve(model, X_test, y_test, X_train, y_train)
+            plot_pr_curve(network, X_test, y_test, X_train, y_train)
+            plot_roc_curve(network, X_test, y_test, X_train, y_train)
 
-        y_pred = network_predictions(model, X_test)
+        y_pred = network_predictions(network, X_test)
         return classification_metrics(y_test, y_pred)
 
-    def save_model(self):
+    def save_network(self):
         """Saves Q-network as pickle to `model_path`."""
         with open(self.model_path, "wb") as f:  # Save Q-network as pickle
             pickle.dump(self.agent._target_q_network, f)
 
     @staticmethod
-    def load_model(fp: str):
-        """Static method to load Q-network pickle from given filepath."""
+    def load_network(fp: str):
+        """Static method to load Q-network pickle from given filepath.
+
+        :param fp: Filepath to the saved pickle of the network
+        :type  fp: str
+
+        :returns: The network-object loaded from a pickle file.
+        :rtype: tensorflow.keras.models.Model
+        """
         with open(fp, "rb") as f:  # Load the Q-network
             network = pickle.load(f)
         return network

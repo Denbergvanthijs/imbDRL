@@ -4,16 +4,14 @@
 
 ***Imbalanced Classification with Deep Reinforcement Learning.***
 
-This repository contains an (Double) Deep Q-Network implementation of binary classification on unbalanced datasets using [TensorFlow 2.3 / 2.4](https://www.tensorflow.org/) and [TF Agents 0.6](https://www.tensorflow.org/agents):
+This repository contains an (Double) Deep Q-Network implementation of binary classification on unbalanced datasets using [TensorFlow 2.3+](https://www.tensorflow.org/) and [TF Agents 0.6+](https://www.tensorflow.org/agents). The Double DQN as published in [this paper](https://arxiv.org/abs/1509.06461) by *van Hasselt et al. (2015)* is using a custom environment based on [this paper](https://arxiv.org/abs/1901.01379) by *Lin, Chen & Qi (2019)*.
 
-* The Double Deep Q-network as published in [this paper](https://arxiv.org/abs/1509.06461) by *van Hasselt et al.* is using a custom environment based on [this paper](https://arxiv.org/abs/1901.01379) by *Lin et al*.
-
-Example scripts on the [Mnist](http://yann.lecun.com/exdb/mnist/), [Fashion Mnist](https://github.com/zalandoresearch/fashion-mnist) and [Credit Card Fraud](https://www.kaggle.com/mlg-ulb/creditcardfraud) datasets can be found in the `./imbDRL/examples/ddqn/` folder.
+Example scripts on the [Mnist](http://yann.lecun.com/exdb/mnist/), [Fashion Mnist](https://github.com/zalandoresearch/fashion-mnist), [Credit Card Fraud](https://www.kaggle.com/mlg-ulb/creditcardfraud) and [Titanic](https://www.tensorflow.org/datasets/catalog/titanic) datasets can be found in the `./imbDRL/examples/ddqn/` folder.
 
 ## Requirements
 
 * [Python 3.7+](https://www.python.org/)
-* `pip install -r requirements.txt`
+* The required packages as listed in: `requirements.txt`
 * Logs are by default saved in `./logs/`
 * Trained models are by default saved in `./models/`
 * Optional: `./data/` folder located at the root of this repository.
@@ -22,11 +20,16 @@ Example scripts on the [Mnist](http://yann.lecun.com/exdb/mnist/), [Fashion Mnis
 
 ## Getting started
 
+Install via `pip`:
+
+* `pip install imbDRL`
+
 Run any of the following scripts:
 
 * `python .\imbDRL\examples\ddqn\train_credit.py`
 * `python .\imbDRL\examples\ddqn\train_famnist.py`
 * `python .\imbDRL\examples\ddqn\train_mnist.py`
+* `python .\imbDRL\examples\ddqn\train_titanic.py`
 
 ## TensorBoard
 

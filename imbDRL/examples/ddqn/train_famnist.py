@@ -30,18 +30,18 @@ decay_episodes = 100_000  # Number of episodes to decay from 1.0 to `min_epsilon
 
 loss_fn = common.element_wise_huber_loss
 
-imb_rate = 0.04  # Imbalance rate
+imb_ratio = 0.04  # Imbalance rate
 min_class = [4, 5, 6]  # Minority classes
 maj_class = [7, 8, 9]  # Majority classes
 X_train, y_train, X_test, y_test = load_image("famnist")
 X_train, y_train, X_test, y_test, X_val, y_val = get_train_test_val(X_train, y_train, X_test, y_test, min_class, maj_class,
-                                                                    imb_rate=imb_rate, imb_test=False, val_frac=0.1)
+                                                                    imb_ratio=imb_ratio, imb_test=False, val_frac=0.1)
 
 model = TrainDDQN(episodes, warmup_steps, learning_rate, gamma, min_epsilon, decay_episodes, target_update_period=target_update_period,
                   target_update_tau=target_update_tau, batch_size=batch_size, collect_steps_per_episode=collect_steps_per_episode,
                   memory_length=memory_length, collect_every=collect_every, n_step_update=n_step_update)
 
-model.compile_model(X_train, y_train, layers, imb_rate=imb_rate, loss_fn=loss_fn)
+model.compile_model(X_train, y_train, layers, imb_ratio=imb_ratio, loss_fn=loss_fn)
 model.train(X_val, y_val, "Gmean")
 
 stats = model.evaluate(X_test, y_test, X_train, y_train)

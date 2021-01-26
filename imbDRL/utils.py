@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -53,7 +54,7 @@ def rounded_dict(d: dict, precision: int = 6) -> dict:
     return {k: round(v, precision) for k, v in d.items()}
 
 
-def imbalance_ratio(y: np.ndarray, min_classes: list = [1], maj_classes: list = [0]) -> float:
+def imbalance_ratio(y: np.ndarray, min_classes: List[int] = [1], maj_classes: List[int] = [0]) -> float:
     """Calculates imbalance ratio of minority class(es) and majority class(es).
 
     :param y: y-vector with labels.

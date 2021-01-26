@@ -115,7 +115,7 @@ def test_get_train_test_val(capsys):
         data.get_train_test_val(X, y, X, y, 0.2, [0], [1, 2], print_stats=1234)
     assert "must be of type" in str(exc.value)
 
-    X_train, y_train, X_test, y_test, X_val, y_val = data.get_train_test_val(X, y, X, y, [1], [0], imb_rate=0.25, print_stats=False)
+    X_train, y_train, X_test, y_test, X_val, y_val = data.get_train_test_val(X, y, X, y, [1], [0], imb_ratio=0.25, print_stats=False)
     assert X_train.shape == (2, 2)
     assert X_test.shape == (3, 2)
     assert X_val.shape == (1, 2)
@@ -123,14 +123,14 @@ def test_get_train_test_val(capsys):
     assert y_test.shape == (3, )
     assert y_val.shape == (1, )
 
-    data.get_train_test_val(X, y, X, y, [1], [0], imb_rate=0.25, print_stats=True)  # Check if printing
+    data.get_train_test_val(X, y, X, y, [1], [0], imb_ratio=0.25, print_stats=True)  # Check if printing
     captured = capsys.readouterr()
     assert captured.out == ("Imbalance ratio `p`:\n"
                             "\ttrain:      n=0, p=0.000000\n"
                             "\ttest:       n=0, p=0.000000\n"
                             "\tvalidation: n=0, p=0.000000\n")
 
-    data.get_train_test_val(X, y, X, y, [1], [0], imb_rate=0.25, print_stats=False)  # Check if not printing
+    data.get_train_test_val(X, y, X, y, [1], [0], imb_ratio=0.25, print_stats=False)  # Check if not printing
     captured = capsys.readouterr()
     assert captured.out == ""
 
@@ -141,45 +141,45 @@ def test_imbalance_data():
     y = [2, 2, 2, 3, 3, 3]
 
     with pytest.raises(TypeError) as exc:
-        data.imbalance_data(X, np.array(y), [2], [3], imb_rate=0.5)
+        data.imbalance_data(X, np.array(y), [2], [3], imb_ratio=0.5)
     assert "`X` must be of type" in str(exc.value)
 
     with pytest.raises(TypeError) as exc:
-        data.imbalance_data(np.array(X), y, [2], [3], imb_rate=0.5)
+        data.imbalance_data(np.array(X), y, [2], [3], imb_ratio=0.5)
     assert "`y` must be of type" in str(exc.value)
 
     X = np.array(X)
     y = np.array(y)
 
     with pytest.raises(ValueError) as exc:
-        data.imbalance_data(X, y, [2], [3], imb_rate=0.0)
+        data.imbalance_data(X, y, [2], [3], imb_ratio=0.0)
     assert "not in interval" in str(exc.value)
 
     with pytest.raises(ValueError) as exc:
-        data.imbalance_data(X, y, [2], [3], imb_rate=0.0)
+        data.imbalance_data(X, y, [2], [3], imb_ratio=0.0)
     assert "not in interval" in str(exc.value)
 
     with pytest.raises(TypeError) as exc:
-        data.imbalance_data(X, y, 2, [3], imb_rate=0.0)
+        data.imbalance_data(X, y, 2, [3], imb_ratio=0.0)
     assert "`min_class` must be of type list or tuple" in str(exc.value)
 
     with pytest.raises(TypeError) as exc:
-        data.imbalance_data(X, y, [2], 3, imb_rate=0.0)
+        data.imbalance_data(X, y, [2], 3, imb_ratio=0.0)
     assert "`maj_class` must be of type list or tuple" in str(exc.value)
 
     X = np.arange(10).reshape(5, 2)
     y = np.arange(6)
 
     with pytest.raises(ValueError) as exc:
-        data.imbalance_data(X, y, [1], [0], imb_rate=0.2)
+        data.imbalance_data(X, y, [1], [0], imb_ratio=0.2)
     assert "must contain the same amount of rows" in str(exc.value)
 
     X = np.random.rand(100, 2)
     y = np.concatenate([np.ones(50), np.zeros(50)])
-    X, y = data.imbalance_data(X, y, [1], [0], imb_rate=0.2)
-    assert [(60, 2), (60, ), 10] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_rate, 10/50(=0.2) is new imb_rate
+    X, y = data.imbalance_data(X, y, [1], [0], imb_ratio=0.2)
+    assert [(60, 2), (60, ), 10] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_ratio, 10/50(=0.2) is new imb_ratio
 
     X = np.random.rand(100, 2)
     y = np.concatenate([np.ones(50), np.zeros(50)])
     X, y = data.imbalance_data(X, y, [1], [0])
-    assert [(100, 2), (100, ), 50] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_rate, 50/50(=1) is new imb_rate
+    assert [(100, 2), (100, ), 50] == [X.shape, y.shape, y.sum()]  # 50/50 is original imb_ratio, 50/50(=1) is new imb_ratio

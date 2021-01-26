@@ -42,7 +42,7 @@ def decision_function(network, X: np.ndarray) -> dict:
         raise ValueError(f"`X` must be of type `np.ndarray` not {type(X)}")
 
     q, _ = network(X, step_type=constant([time_step.StepType.FIRST] * X.shape[0]), training=False)
-    return np.max(q.numpy(), axis=1)  # Max action for each x in X
+    return np.max(q.numpy(), axis=1)  # Value of max action for each x in X
 
 
 def classification_metrics(y_true: list, y_pred: list) -> dict:
@@ -179,7 +179,7 @@ def plot_confusion_matrix(TP: int, FN: int, FP: int, TN: int) -> None:  # pragma
     :return: None
     :rtype: NoneType
     """
-    if not all(isinstance(i, int) for i in (TP, FN, FP, TN)):
+    if not all(isinstance(i, (int, np.integer)) for i in (TP, FN, FP, TN)):
         raise ValueError("Not all arguments are integers.")
 
     ticklabels = ("Minority", "Majority")
