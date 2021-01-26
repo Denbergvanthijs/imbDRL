@@ -7,7 +7,7 @@ long_description = (base / "README.md").read_text(encoding="utf-8")
 install_requires = (base / "requirements.txt").read_text(encoding="utf-8").split("\n")[:-1]  # Remove empty string at last index
 
 setup(name="imbDRL",
-      version="2021.1.22.1",
+      version="2021.1.26.1",
       author="Thijs van den Berg",
       author_email="denbergvanthijs@gmail.com",
       description="Imbalanced Classification with Deep Reinforcement Learning.",
