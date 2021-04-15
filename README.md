@@ -8,6 +8,12 @@ This repository contains an (Double) Deep Q-Network implementation of binary cla
 
 Example scripts on the [Mnist](http://yann.lecun.com/exdb/mnist/), [Fashion Mnist](https://github.com/zalandoresearch/fashion-mnist), [Credit Card Fraud](https://www.kaggle.com/mlg-ulb/creditcardfraud) and [Titanic](https://www.tensorflow.org/datasets/catalog/titanic) datasets can be found in the `./imbDRL/examples/ddqn/` folder.
 
+## Results
+
+The following results are collected with the scripts in the appendix: [imbDRLAppendix](https://github.com/Denbergvanthijs/imbDRLAppendix). Experiments conducted on the latest release of *imbDRL* and based on [this paper](https://arxiv.org/abs/1901.01379) by *Lin, Chen & Qi (2019)*.
+
+![Results](./images/results.png)
+
 ## Requirements
 
 * [Python 3.7+](https://www.python.org/)
