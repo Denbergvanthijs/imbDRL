@@ -5,5 +5,5 @@ gym
 matplotlib
 pandas
 seaborn
-sklearn
+scikit-learn
 tqdm
